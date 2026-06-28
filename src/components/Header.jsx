@@ -47,7 +47,7 @@ export function Dashboard({ onStart, onBack }) {
             <div className="row g-4">
                 {/* 1. Difficulté */}
                 <div className="col-md-6 d-flex flex-column gap-2">
-                    <p className="fw-bold text-secondary mb-1">1. Difficulté (Temps d'encodage)</p>
+                    <p className="fw-bold text-secondary mb-1">1. Difficulté (Temps)</p>
                     <button className={`btn w-100 py-3 rounded-4 fw-bold border-2 transition ${level === 'easy' ? 'btn-dark' : 'btn-outline-dark'}`} onClick={() => setLevel('easy')}>
                         FACILE (20s)
                     </button>
