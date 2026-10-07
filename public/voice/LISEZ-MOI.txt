@@ -1,0 +1,16 @@
+Voix de l'annonceur du mode Battle
+==================================
+
+Dépose ici un fichier MP3 par réplique, avec exactement ces noms :
+
+  round1.mp3   "Round 1"
+  round2.mp3   "Round 2"
+  final.mp3    "Final round"
+  fight.mp3    "Fight!"
+  ko.mp3       "K.O.!"
+  duel.mp3     "Duel!"
+  draw.mp3     "Draw!"
+  winner.mp3   "We have a winner!"
+
+Tant qu'un fichier manque, le jeu utilise la voix de synthèse du navigateur
+pour cette réplique. Aucun changement de code n'est nécessaire.

@@ -1,86 +1,142 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Header, Footer, Dashboard, GameBoard, GameOver } from './components/Header';
+import { useCallback, useEffect, useState } from 'react';
+import BattleBoard from './components/BattleBoard';
+import BattleOver from './components/BattleOver';
+import Footer from './components/Footer';
+import GameBoard from './components/GameBoard';
+import GameConfig from './components/GameConfig';
+import GameOver from './components/GameOver';
+import Header from './components/Header';
+import Home from './components/Home';
+import LoginModal from './components/LoginModal';
+import { DEFAULT_PLAYERS, normalizePlayer } from './data/avatars';
+import { GAMES } from './data/games';
+import { useI18n } from './i18n/context';
+import { announce } from './utils/announcer';
+import { playSound } from './utils/audio';
+import { setMusicMood, startMusic } from './utils/music';
+import { readStorage, writeStorage } from './utils/storage';
+import { computeScore } from './utils/wordswap';
 
+const DEFAULT_CONFIG = { theme: 'animals', level: 'easy', sequenceLength: 7 };
+const DEFAULT_BATTLE_CONFIG = { theme: 'animals', level: 'medium', sequenceLength: 5, view: '2d', duel: true, cpu: null, players: DEFAULT_PLAYERS };
+
+const loadConfig = (gameId) => {
+    const saved = readStorage(`${gameId}:config`, {});
+    if (gameId !== 'battle') return { ...DEFAULT_CONFIG, ...saved };
+    const config = { ...DEFAULT_BATTLE_CONFIG, ...saved };
+    // Anciennes sauvegardes : seulement des noms, ou des joueurs incomplets.
+    config.players = [0, 1].map((i) => normalizePlayer({ name: saved.names?.[i] ?? '', ...saved.players?.[i] }, i));
+    delete config.names;
+    return config;
+};
 
 export default function App() {
+    const { t } = useI18n();
     const [view, setView] = useState('home'); // 'home' | 'config' | 'play' | 'score'
-    const [config, setConfig] = useState({ theme: 'animals', level: 'easy', sequenceLength: 7 });
-    const [roundHistory, setRoundHistory] = useState([]);
-    const [showModal, setShowModal] = useState(false);
+    const [gameId, setGameId] = useState('wordswap'); // 'wordswap' | 'battle'
+    const [config, setConfig] = useState(() => loadConfig('wordswap'));
+    const [result, setResult] = useState(null);
+    const [gameKey, setGameKey] = useState(0); // force une nouvelle partie à chaque lancement
+    const [showLogin, setShowLogin] = useState(false);
 
-    const handleStartGame = (gameConfig) => {
+    // La musique ne peut démarrer qu'après une première action de l'utilisateur.
+    useEffect(() => {
+        const start = () => startMusic();
+        window.addEventListener('pointerdown', start);
+        window.addEventListener('keydown', start);
+        return () => {
+            window.removeEventListener('pointerdown', start);
+            window.removeEventListener('keydown', start);
+        };
+    }, []);
+
+    // Hors combat : le morceau des menus (pendant un combat, c'est useBattle qui choisit).
+    useEffect(() => {
+        if (!(view === 'play' && gameId === 'battle')) setMusicMood('menu');
+    }, [view, gameId]);
+
+    const game = GAMES.find((g) => g.id === gameId);
+    const goHome = () => setView('home');
+
+    const openGame = (id) => {
+        setGameId(id);
+        setConfig(loadConfig(id));
+        setView('config');
+    };
+
+    const startGame = (gameConfig) => {
         setConfig(gameConfig);
+        writeStorage(`${gameId}:config`, gameConfig);
+        setGameKey((k) => k + 1);
         setView('play');
     };
 
-    const handleGameFinished = (history) => {
-        setRoundHistory(history);
+    const finishGame = useCallback((roundHistory) => {
+        // Calcul du score et du record une seule fois, à la fin de la partie.
+        const score = computeScore(roundHistory);
+        const previousBest = readStorage('best:wordswap', 0);
+        const isNewBest = score > previousBest;
+        if (isNewBest) writeStorage('best:wordswap', score);
+        setResult({ history: roundHistory, score, best: Math.max(score, previousBest), isNewBest });
         setView('score');
-    };
+    }, []);
+
+    const finishBattle = useCallback((matchResult) => {
+        playSound('win');
+        announce('winner');
+        setResult(matchResult);
+        setView('score');
+    }, []);
+
+    // Joueurs affichés en Battle : nom saisi, sinon « Joueur 1 / Joueur 2 ».
+    const players = [0, 1].map((i) => {
+        const player = normalizePlayer(config.players?.[i], i);
+        const fallback = i === 1 && config.cpu ? t('config.cpuName') : t('config.playerDefault', { n: i + 1 });
+        return { ...player, name: player.name || fallback };
+    });
+    const isBattle = gameId === 'battle';
 
     return (
-        <div className="d-flex flex-column min-vh-100 bg-white">
-            <Header onViewChange={setView} onOpenConnexion={() => setShowModal(true)} />
+        <div className="app">
+            <Header onHome={goHome} onOpenLogin={() => setShowLogin(true)} />
 
-            <main className="container my-auto py-4 flex-grow-1 d-flex align-items-center justify-content-center">
-                {view === 'home' && (
-                    <div className="text-center w-100">
-                        <h2 className="mb-4 fw-bold text-dark">Travaillons le cerveau !! 🧠🏋️</h2>
-                        <div className="row g-4 mt-2 justify-content-center">
-                            <div className="col-12 col-md-4">
-                                <div className="card p-5 rounded-5 border border-3 border-dark bg-light d-flex flex-column align-items-center justify-content-center transition hover-scale" style={{ cursor: 'pointer', height: '240px' }} onClick={() => setView('config')}>
-                                    <h4 className="fw-bold m-0 text-dark">WordSwap Calc</h4>
-                                    <span className="badge bg-dark mt-2">JEU ACTIF</span>
-                                </div>
-                            </div>
-                            <div className="col-12 col-md-4">
-                                <div className="card p-5 rounded-5 border-0 bg-light d-flex flex-column align-items-center justify-content-center opacity-75" style={{ height: '240px' }}>
-                                    <h4 className="fw-bold text-muted m-0">GridMatching</h4>
-                                    <span className="badge bg-secondary mt-2">À venir</span>
-                                </div>
-                            </div>
-                            <div className="col-12 col-md-4">
-                                <div className="card p-5 rounded-5 border-0 bg-light d-flex flex-column align-items-center justify-content-center opacity-75" style={{ height: '240px' }}>
-                                    <h4 className="fw-bold text-muted m-0">SequenceFocus</h4>
-                                    <span className="badge bg-secondary mt-2">À venir</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
+            <main className="container main-area">
+                {view === 'home' && <Home onPlay={openGame} />}
 
                 {view === 'config' && (
-                    <Dashboard onStart={handleStartGame} onBack={() => setView('home')} />
+                    <GameConfig key={gameId} game={game} initialConfig={config} onStart={startGame} onBack={goHome} />
                 )}
 
-                {view === 'play' && (
-                    <GameBoard theme={config.theme} level={config.level} sequenceLength={config.sequenceLength} onGameFinished={handleGameFinished} onBack={() => setView('home')} />
+                {view === 'play' && !isBattle && (
+                    <GameBoard key={gameKey} config={config} onGameFinished={finishGame} onQuit={goHome} />
+                )}
+                {view === 'play' && isBattle && (
+                    <BattleBoard key={gameKey} config={config} players={players} onMatchFinished={finishBattle} onQuit={goHome} />
                 )}
 
-                {view === 'score' && (
-                    <GameOver history={roundHistory} totalRounds={3} onRestart={() => setView('config')} />
+                {view === 'score' && result && !isBattle && (
+                    <GameOver
+                        result={result}
+                        onReplay={() => startGame(config)}
+                        onSettings={() => setView('config')}
+                        onHome={goHome}
+                    />
+                )}
+                {view === 'score' && result && isBattle && (
+                    <BattleOver
+                        result={result}
+                        players={players}
+                        view={config.view}
+                        onRematch={() => startGame(config)}
+                        onSettings={() => setView('config')}
+                        onHome={goHome}
+                    />
                 )}
             </main>
 
             <Footer />
 
-            {/* Notification élégante pour remplacer le "alert" (Modal Bootstrap simulé) */}
-            {showModal && (
-                <div className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-50" style={{ zIndex: 1050 }}>
-                    <div className="card p-4 rounded-4 shadow-lg border-0 bg-white text-center" style={{ maxWidth: '400px' }}>
-                        <div className="mb-3">
-                            <span className="h1">🔒</span>
-                        </div>
-                        <h4 className="fw-bold text-dark">Espace Profil Usager</h4>
-                        <p className="text-secondary small">
-                            Ce service de connexion sera entièrement intégré lors du Devoir 4 (Base de données et profils utilisateurs) !
-                        </p>
-                        <button className="btn btn-dark w-100 rounded-3 py-2 fw-bold" onClick={() => setShowModal(false)}>
-                            Compris !
-                        </button>
-                    </div>
-                </div>
-            )}
+            {showLogin && <LoginModal onClose={() => setShowLogin(false)} />}
         </div>
     );
 }

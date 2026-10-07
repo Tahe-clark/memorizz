@@ -1,15 +1,15 @@
-
+// Thèmes d'émojis. Le nom affiché vient des traductions (clé "theme.<id>").
 export const THEMES = {
     animals: {
-        label: "Animaux 🐾",
-        items: ['🐶', '🐱', '🦊', '🦁', '🐸', '🐯', '🐼', '🐨', '🐙']
+        icon: '🐾',
+        items: ['🐶', '🐱', '🦊', '🦁', '🐸', '🐯', '🐼', '🐨', '🐙'],
     },
     food: {
-        label: "Nourriture 🍍",
-        items: ['🍍', '🍎', '🍓', '🥑', '🍕', '🍔', '🍣', '🍉', '🍌']
+        icon: '🍍',
+        items: ['🍍', '🍎', '🍓', '🥑', '🍕', '🍔', '🍣', '🍉', '🍌'],
     },
     space: {
-        label: "Espace 🚀",
-        items: ['🚀', '🪐', '🌌', '🛸', '☄️', '🛰️', '👾', '🌟', '🌕']
-    }
+        icon: '🚀',
+        items: ['🚀', '🪐', '🌌', '🛸', '☄️', '🛰️', '👾', '🌟', '🌕'],
+    },
 };
