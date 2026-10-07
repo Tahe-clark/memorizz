@@ -98,6 +98,11 @@ export default function App() {
 
     return (
         <div className="app">
+            {/* Fond animé : halos de couleur et petites cartes qui flottent */}
+            <div className="app-bg" aria-hidden="true">
+                <span className="bg-blob blob-1" /><span className="bg-blob blob-2" /><span className="bg-blob blob-3" />
+                {Array.from({ length: 9 }, (_, i) => <span key={i} className="bg-mini" style={{ '--i': i }} />)}
+            </div>
             <Header onHome={goHome} onOpenLogin={() => setShowLogin(true)} />
 
             <main className="container main-area">

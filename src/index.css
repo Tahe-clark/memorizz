@@ -1426,3 +1426,49 @@ body {
 .steps.is-tabbed { gap: 28px; min-height: 300px; margin-bottom: 26px; }
 .config-tabs { margin-bottom: 28px; }
 .config-foot { position: static; margin: 0; padding: 18px 0 0; border-radius: 0; border-top: var(--border); box-shadow: none; background: transparent; }
+
+/* ---------- Fond animé (repris de la vidéo de présentation) ---------- */
+body { background: #f7f6f1; }
+:root[data-theme='dark'] body { background: var(--bg); }
+.app { position: relative; isolation: isolate; }
+.app-bg {
+    position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none;
+    background-image: radial-gradient(rgba(35, 40, 56, 0.09) 1.6px, transparent 1.6px);
+    background-size: 34px 34px;
+}
+:root[data-theme='dark'] .app-bg { background-image: radial-gradient(rgba(255, 255, 255, 0.07) 1.6px, transparent 1.6px); }
+.bg-blob { position: absolute; border-radius: 50%; filter: blur(70px); opacity: 0.55; animation: bg-drift 26s ease-in-out infinite alternate; }
+.blob-1 { width: 44vw; height: 44vw; left: -6vw; top: -14vw; background: #c9cbff; }
+.blob-2 { width: 40vw; height: 40vw; right: -6vw; top: 30vh; background: #ffe7a3; animation-duration: 31s; animation-delay: -8s; }
+.blob-3 { width: 34vw; height: 34vw; left: 26vw; bottom: -14vw; background: #ffc9d4; animation-duration: 37s; animation-delay: -15s; }
+:root[data-theme='dark'] .bg-blob { opacity: 0.16; }
+@keyframes bg-drift {
+    from { transform: translate(-6vw, -4vh) scale(1); }
+    to { transform: translate(9vw, 7vh) scale(1.12); }
+}
+.bg-mini {
+    position: absolute; width: 44px; height: 52px; border-radius: 10px;
+    border: 3px solid rgba(35, 40, 56, 0.13);
+    left: calc((var(--i) * 151px + 60px) * 100vw / 1400px);
+    top: 100%;
+    animation: bg-float calc(38s + var(--i) * 5s) linear infinite;
+    animation-delay: calc(var(--i) * -7s);
+}
+:root[data-theme='dark'] .bg-mini { border-color: rgba(255, 255, 255, 0.09); }
+@keyframes bg-float {
+    from { transform: translateY(0) rotate(0deg); }
+    to { transform: translateY(-125vh) rotate(260deg); }
+}
+@media (prefers-reduced-motion: reduce) { .bg-blob, .bg-mini { animation: none; } .bg-mini { display: none; } }
+
+/* ---------- Carte 1 de l'accueil : lance la vidéo de démonstration ---------- */
+.demo-play { padding: 0; border: 0; background: none; cursor: pointer; font: inherit; color: inherit; animation: demo-pulse 2.2s ease-in-out 2.4s infinite; }
+.demo-play .tile.is-highlight .tile-front { background: #eceeff; border-color: #2f49e6; box-shadow: 4px 4px 0 #2f49e6; color: #2f49e6; }
+.demo-play:hover .tile { transform: translateY(-4px) rotate(-3deg); transition: transform 0.15s ease; }
+.demo-play:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; border-radius: 12px; }
+@keyframes demo-pulse { 50% { transform: scale(1.08); } }
+.demo-backdrop { background: rgba(18, 20, 28, 0.78); }
+.demo-card { position: relative; width: min(960px, 100%); }
+.demo-video { display: block; width: 100%; aspect-ratio: 16 / 9; border-radius: var(--radius-lg); background: #000; box-shadow: var(--shadow-lg); }
+.demo-close { position: absolute; top: -52px; right: 0; background: var(--paper); }
+@media (prefers-reduced-motion: reduce) { .demo-play { animation: none; } }

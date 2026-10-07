@@ -216,7 +216,7 @@ let fightState = 'unknown'; // 'unknown' | 'none'
 
 /** Démarre la musique (à appeler après un premier clic : les navigateurs l'exigent). */
 export function startMusic() {
-    if (!enabled || track || document.hidden) return;
+    if (!enabled || held || track || document.hidden) return;
     // Pendant un combat : le beat dynamique. Partout ailleurs : le morceau doux.
     if (mood === 'fight' && fightState !== 'none') {
         if (song) song.pause();
@@ -316,6 +316,14 @@ export function setMusicMood(next) {
     step = 0;
     if (fight) fight.currentTime = 0; // le morceau de combat repart sur son premier temps
     startMusic(); // bascule entre le morceau (menus) et le beat (combat)
+}
+
+let held = false;
+/** Met la musique en pause le temps d'une vidéo, puis la relance. */
+export function holdMusic(on) {
+    held = on;
+    if (on) stop();
+    else startMusic();
 }
 
 export function isMusicEnabled() {

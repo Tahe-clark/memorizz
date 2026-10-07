@@ -68,6 +68,8 @@ export const DICTIONARY = {
 
         'home.twoPlayers': 'Contre un ami ou l’ordinateur',
         'game.battle.desc': 'Le duel de WordSwap Calc, contre un ami ou contre l’ordinateur. Le plus rapide à résoudre le calcul frappe l’autre.',
+        'demo.title': 'Voir la vidéo de démonstration',
+        'demo.close': 'Fermer la vidéo',
         'config.customize': 'Personnaliser l’avatar',
         'config.tab0': 'Joueurs',
         'config.tab1': 'Partie',
@@ -212,6 +214,8 @@ export const DICTIONARY = {
 
         'home.twoPlayers': 'Against a friend or the computer',
         'game.battle.desc': 'The WordSwap Calc duel, against a friend or the computer. Whoever solves the calculation first lands a punch.',
+        'demo.title': 'Watch the demo video',
+        'demo.close': 'Close the video',
         'config.customize': 'Customize the avatar',
         'config.tab0': 'Players',
         'config.tab1': 'Game',
