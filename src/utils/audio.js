@@ -90,6 +90,98 @@ function bell(c, freq, at, volume = 0.09, duration = 0.7) {
     tone(c, { freq: freq * 2.76, at, duration: duration * 0.4, volume: volume * 0.35 });
 }
 
+/* ---------- Sons du Far West ---------- */
+
+// Écho du canyon : une réverbération synthétique (souffle qui s'éteint + deux
+// échos sur les falaises), créée une seule fois et partagée.
+let canyon = null;
+function canyonVerb(c) {
+    if (canyon) return canyon;
+    const length = Math.floor(c.sampleRate * 2.6);
+    const impulse = c.createBuffer(2, length, c.sampleRate);
+    for (let ch = 0; ch < 2; ch++) {
+        const data = impulse.getChannelData(ch);
+        for (let i = 0; i < length; i++) {
+            const tail = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 3.5) * 0.5;
+            data[i] = i < c.sampleRate * 0.015 ? 0 : tail;
+        }
+        // Échos francs, un peu décalés entre gauche et droite
+        [[0.31, 0.9], [0.62, 0.5], [0.97, 0.25]].forEach(([at, amp]) => {
+            const start = Math.floor((at + ch * 0.03) * c.sampleRate);
+            for (let i = 0; i < 900; i++) data[start + i] += (Math.random() * 2 - 1) * amp * (1 - i / 900);
+        });
+    }
+    const convolver = c.createConvolver();
+    convolver.buffer = impulse;
+    const wet = c.createGain();
+    wet.gain.value = 0.6;
+    convolver.connect(wet);
+    wet.connect(master);
+    canyon = convolver;
+    return canyon;
+}
+
+// Un éclat de bruit filtré envoyé vers "out" (pas directement vers la sortie).
+function burst(c, out, { at = 0, freq, filter = 'bandpass', q = 0.7, duration, volume }) {
+    if (!noiseBuffer) noise(c, { freq: 1000, volume: 0.0001, duration: 0.01 });
+    const start = c.currentTime + at;
+    const source = c.createBufferSource();
+    source.buffer = noiseBuffer;
+    const biquad = c.createBiquadFilter();
+    biquad.type = filter;
+    biquad.frequency.value = freq;
+    biquad.Q.value = q;
+    const gain = c.createGain();
+    gain.gain.setValueAtTime(volume, start);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+    source.connect(biquad);
+    biquad.connect(gain);
+    gain.connect(out);
+    source.start(start, Math.random() * 0.5);
+    source.stop(start + duration + 0.05);
+}
+
+/** Coup de revolver : claquement sec, souffle, onde grave, puis écho du canyon. */
+function gunshot(c) {
+    const out = c.createGain();
+    out.gain.value = 1;
+    out.connect(master);
+    out.connect(canyonVerb(c));
+    burst(c, out, { freq: 3800, filter: 'highpass', duration: 0.05, volume: 1.4 });
+    burst(c, out, { freq: 1400, q: 0.5, duration: 0.18, volume: 1.1 });
+    burst(c, out, { freq: 420, filter: 'lowpass', duration: 0.5, volume: 1.2 });
+    const start = c.currentTime;
+    const osc = c.createOscillator();
+    osc.frequency.setValueAtTime(120, start);
+    osc.frequency.exponentialRampToValueAtTime(32, start + 0.4);
+    const gain = c.createGain();
+    gain.gain.setValueAtTime(1, start);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.45);
+    osc.connect(gain);
+    gain.connect(out);
+    osc.start(start);
+    osc.stop(start + 0.5);
+}
+
+/** Corde de guitare pincée (son de western) : dent de scie filtrée qui s'éteint. */
+function pluck(c, freq, at = 0, volume = 0.16, duration = 1.6) {
+    const start = c.currentTime + at;
+    const osc = c.createOscillator();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(freq * 1.01, start);
+    osc.frequency.exponentialRampToValueAtTime(freq, start + 0.08);
+    const lowpass = c.createBiquadFilter();
+    lowpass.type = 'lowpass';
+    lowpass.frequency.setValueAtTime(3200, start);
+    lowpass.frequency.exponentialRampToValueAtTime(380, start + duration * 0.6);
+    const gain = envelope(c, start, duration, volume, 0.004);
+    osc.connect(lowpass);
+    lowpass.connect(gain);
+    if (canyon) gain.connect(canyon);
+    osc.start(start);
+    osc.stop(start + duration + 0.05);
+}
+
 const SOUNDS = {
     // Bonne réponse : deux notes claires qui montent
     success: (c) => {
@@ -127,10 +219,33 @@ const SOUNDS = {
         [0.35, 0.53, 0.71].forEach((at) => bell(c, 1318.5, at, 0.07, 0.8));
     },
     // Coup de feu (duel au Far West) : claquement sec + détonation grave
-    gunshot: (c) => {
-        noise(c, { freq: 2600, q: 0.5, duration: 0.09, volume: 0.5, attack: 0.001 });
-        noise(c, { freq: 500, filter: 'lowpass', duration: 0.35, volume: 0.45, attack: 0.002 });
-        tone(c, { freq: 140, to: 40, duration: 0.3, volume: 0.45, attack: 0.002 });
+    gunshot: (c) => gunshot(c),
+    // Chien du revolver qu'on arme : deux petits clics métalliques
+    cock: (c) => {
+        noise(c, { freq: 5200, q: 4, duration: 0.03, volume: 0.35, attack: 0.001 });
+        noise(c, { freq: 3600, q: 4, at: 0.09, duration: 0.04, volume: 0.4, attack: 0.001 });
+    },
+    // Guitare de western qui glisse vers le grave (ouverture de la cinématique)
+    twang: (c) => {
+        canyonVerb(c);
+        pluck(c, 164.8, 0, 0.17, 2.2);
+        pluck(c, 246.9, 0.05, 0.1, 1.8);
+        tone(c, { freq: 330, to: 220, type: 'triangle', at: 0.3, duration: 1.2, volume: 0.05 });
+    },
+    // Battements de cœur pendant les gros plans
+    heartbeat: (c) => {
+        [0, 0.22].forEach((at, i) => tone(c, { freq: 62, to: 40, at, duration: 0.18, volume: i ? 0.4 : 0.55, attack: 0.005 }));
+    },
+    // Vent qui souffle sur le désert
+    wind: (c) => {
+        noise(c, { freq: 300, to: 900, q: 1.5, duration: 1.4, volume: 0.12, attack: 0.5 });
+    },
+    // Accord final avant le duel : guitare et coup sourd
+    sting: (c) => {
+        canyonVerb(c);
+        [82.4, 123.5, 164.8, 207.7].forEach((f, i) => pluck(c, f, i * 0.025, 0.14, 2.4));
+        tone(c, { freq: 70, to: 38, duration: 0.6, volume: 0.45, attack: 0.004 });
+        noise(c, { freq: 600, filter: 'lowpass', duration: 0.5, volume: 0.25, attack: 0.002 });
     },
     // Balle qui rate sa cible : sifflement qui file
     ricochet: (c) => {

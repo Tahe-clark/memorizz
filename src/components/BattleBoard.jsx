@@ -6,6 +6,7 @@ import Arena from './Arena';
 import Arena3D, { DuelScene3D } from './Arena3D';
 import BeatDots from './BeatDots';
 import Confetti from './Confetti';
+import DuelCinematic from './DuelCinematic';
 import DuelScene from './DuelScene';
 import Tile from './Tile';
 
@@ -35,7 +36,7 @@ export default function BattleBoard({ config, players, onMatchFinished, onQuit }
     // Qui peut répondre ? Au duel, chacun n'a qu'un essai : celui qui a raté ne peut plus rien faire.
     const cpu = Boolean(config.cpu); // le joueur de droite est joué par l'ordinateur
     const stage = battle.finisherStage; // coup final : 'charge' | 'blast' | 'done'
-    const canAnswer = (player) => !(cpu && player === 1)
+    const canAnswer = (player) => !(cpu && player === 1) && battle.taunt === null
         && (phase === 'fight' || phase === 'duel' || (phase === 'duelFree' && duel.missed !== player));
 
     useEffect(() => {
@@ -105,8 +106,10 @@ export default function BattleBoard({ config, players, onMatchFinished, onQuit }
             </div>
 
             <div className={`arena-wrap ${duel ? 'is-duel' : ''} ${stage ? `fin-${stage}` : ''}`}>
-                {duel && config.view === '3d' && <DuelScene3D battle={battle} players={players} title={t('duel.title')} subtitle={t('duel.subtitle')} />}
-                {duel && config.view !== '3d' && <DuelScene battle={battle} players={players} title={t('duel.title')} subtitle={t('duel.subtitle')} />}
+                {duel && config.view === '3d' && <DuelScene3D battle={battle} players={players} />}
+                {duel && config.view !== '3d' && <DuelScene battle={battle} players={players} />}
+                {phase === 'duelIntro' && <DuelCinematic key={`cine${battle.round}`} players={players} title={t('duel.title')} subtitle={t('duel.subtitle')} />}
+                {battle.taunt !== null && <div className={`taunt taunt-${battle.taunt}`}>Adios muchachos !</div>}
                 {!duel && (config.view === '3d' ? <Arena3D battle={battle} players={players} /> : <Arena battle={battle} players={players} />)}
                 {/* La boule de cactus : un clic (ou Espace) lance le duel au Far West */}
                 {battle.cactusVisible && (

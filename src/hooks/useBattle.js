@@ -2,7 +2,7 @@ import { useEffect, useReducer, useRef, useState } from 'react';
 import { THEMES } from '../data/themes';
 import { announce, roundVoice } from '../utils/announcer';
 import { playSound } from '../utils/audio';
-import { BEAT_MS, msToGrid, playTrack, setMusicMood, stopTrack } from '../utils/music';
+import { BEAT_MS, duckMusic, msToGrid, playTrack, setMusicMood, stopTrack } from '../utils/music';
 import { createEquation, createSequence, LEVELS } from '../utils/wordswap';
 
 // Réglages du combat
@@ -23,7 +23,11 @@ const KO_DELAY = 2400;
 const COUNTER_EXTRA = 700;         // l'esquive + le contre durent un peu plus longtemps
 // Duel au Far West : parfois, une boule de cactus tombe sur le ring.
 const CACTUS_CHANCE = 0.6;         // probabilité qu'elle apparaisse pendant une manche
-const DUEL_INTRO = 3600;           // durée de la cinématique (ms)
+export const DUEL_INTRO = 5600;    // durée de la cinématique (ms), voir components/DuelCinematic.jsx
+// Instants (ms) des plans de la cinématique, pour caler les bruitages.
+const CINE_CUES = [[0, 'twang'], [150, 'wind'], [1500, 'whoosh'], [1700, 'heartbeat'], [2350, 'heartbeat'], [2700, 'whoosh'], [3000, 'cock'], [3800, 'sting']];
+// Celui qui tire en second (l'autre a raté) lance d'abord « Adios muchachos ».
+const TAUNT_MS = 1700;
 export const DUEL_PEEK = 5;        // secondes pour mémoriser les cartes du duel
 const DUEL_TRACK = `${import.meta.env.BASE_URL}duel.mp3`;
 // Coup final : dans la dernière manche, le K.O. est précédé d'une transformation.
@@ -218,12 +222,12 @@ export function useBattle({ theme, level, sequenceLength, emojis, rounds = 3, du
     // Sons : un par événement (coup, erreur) et un pour le K.O.
     const { id: eventId, type } = state.event;
     useEffect(() => {
+        if (type === 'duelShot' || type === 'duelMiss') duckMusic();
         if (type === 'duelShot') playSound('gunshot');
         if (type === 'duelMiss') {
             playSound('gunshot');
             playSound('ricochet');
         }
-        if (type === 'duelStart') announce('duel');
         if (state.finisher) return undefined; // le coup final a ses propres sons
         if (type !== 'hit' && type !== 'counter') return undefined;
         // Le bras part (souffle), puis le coup touche. Sur une mauvaise réponse,
@@ -238,6 +242,15 @@ export function useBattle({ theme, level, sequenceLength, emojis, rounds = 3, du
         }
         return () => timers.forEach(clearTimeout);
     }, [eventId, type, state.finisher]);
+    // Bruitages de la cinématique du duel, plan par plan.
+    const inIntro = state.phase === 'duelIntro';
+    useEffect(() => {
+        if (!inIntro) return undefined;
+        const timers = CINE_CUES.map(([at, sound]) => setTimeout(() => playSound(sound), at));
+        timers.push(setTimeout(() => announce('duel'), 3950));
+        return () => timers.forEach(clearTimeout);
+    }, [inIntro]);
+
     useEffect(() => {
         if (state.phase !== 'ko') return undefined;
         const id = setTimeout(() => {
@@ -309,8 +322,22 @@ export function useBattle({ theme, level, sequenceLength, emojis, rounds = 3, du
     const questionKey = `${state.round}-${questionId}`;
     const activePending = pending?.questionKey === questionKey ? pending : null;
 
+    // « Adios muchachos » : la réplique est dite, puis le coup part.
+    const [taunt, setTaunt] = useState(null); // { player, round }
+    const tauntRound = useRef(null);
+    const activeTaunt = taunt && taunt.round === state.round && phase === 'duelFree' ? taunt.player : null;
+
     const answer = (player, option) => {
-        if (phase === 'duel' || phase === 'duelFree') {
+        if (phase === 'duelFree') {
+            if (tauntRound.current === state.round || player === state.duel.missed) return;
+            tauntRound.current = state.round;
+            setTaunt({ player, round: state.round });
+            announce('adios');
+            clearTimeout(pendingRef.current.timer);
+            pendingRef.current.timer = setTimeout(() => dispatch({ type: 'duelAnswer', player, option }), TAUNT_MS);
+            return;
+        }
+        if (phase === 'duel') {
             dispatch({ type: 'duelAnswer', player, option });
             return;
         }
@@ -419,6 +446,7 @@ export function useBattle({ theme, level, sequenceLength, emojis, rounds = 3, du
     return {
         ...state,
         decider: isDecider(state.wins, state.totalRounds),
+        taunt: activeTaunt,
         seconds,
         equationSeconds: (EQUATION_BEATS * BEAT_MS) / 1000,
         pending: activePending,

@@ -299,6 +299,18 @@ export function playTrack(url) {
     });
 }
 
+/** Baisse brièvement le morceau en cours, pour qu'un coup de feu s'entende bien. */
+export function duckMusic(ms = 1600) {
+    const target = track ?? (fight && !fight.paused ? fight : null);
+    if (!target) return;
+    const normal = target === track ? 0.55 : 0.5;
+    target.volume = 0.12;
+    clearTimeout(duckMusic.timer);
+    duckMusic.timer = setTimeout(() => {
+        target.volume = normal;
+    }, ms);
+}
+
 /** Arrête le morceau et reprend la musique générée. */
 export function stopTrack() {
     if (!track) return;

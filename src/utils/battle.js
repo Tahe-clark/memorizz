@@ -34,7 +34,9 @@ export function fighterMood(player, { phase, roundWinner, hp, finisherStage }) {
 }
 
 // Duel au Far West : attitude d'un cowboy (classe d'animation + expression).
-export function cowboyLook(player, { phase, duel }) {
+export function cowboyLook(player, { phase, duel, taunt = null }) {
+    // Il a gagné le droit de tirer : petit sourire en coin pendant « Adios muchachos ».
+    if (taunt === player && phase !== 'ko') return { state: 'is-taunting', mood: 'happy' };
     if (phase === 'ko') {
         return duel.winner === player ? { state: 'is-shooter', mood: 'happy' } : { state: 'is-shot', mood: 'ko' };
     }

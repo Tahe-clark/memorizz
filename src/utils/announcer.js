@@ -27,6 +27,7 @@ export const VOICE_LINES = {
     draw: 'Draw!',
     winner: 'We have a winner!',
     finisher: 'Final blow!',
+    adios: 'Adios muchachos!',
 };
 
 const VOICE_FOLDER = `${import.meta.env.BASE_URL}voice/`;

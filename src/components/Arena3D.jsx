@@ -1,3 +1,4 @@
+import DesertBackdrop from './DesertBackdrop';
 import { AVATARS } from '../data/avatars';
 import { cowboyLook, fighterMood, fighterState, hpLevel } from '../utils/battle';
 import { AvatarFront } from './Avatar';
@@ -40,6 +41,7 @@ function Fighter3D({ player, state, mood, level, gun = false }) {
                     <>
                         <div className="f3-revolver" />
                         <div className="f3-flash" />
+                        <div className="f3-smoke"><i /><i /><i /><i /><i /></div>
                         <div className="f3-bullet f3-bullet-hit" />
                         <div className="f3-bullet f3-bullet-miss" />
                     </>
@@ -91,17 +93,13 @@ function Cactus3D({ x, z, size }) {
 }
 
 /** Le duel au Far West en 3D : désert en perspective, cowboys en volume. */
-export function DuelScene3D({ battle, players, title, subtitle }) {
+export function DuelScene3D({ battle, players }) {
     const key = battle.event.id;
     return (
         <div className={`arena3d duel3d phase-${battle.phase}`} aria-hidden="true">
+            <DesertBackdrop className="d3-backdrop" />
             <div className="a3-scene">
                 <div className="a3-stage">
-                    <div className="d3-sun" />
-                    <div className="d3-cloud d3-cloud-a" />
-                    <div className="d3-cloud d3-cloud-b" />
-                    <div className="d3-mesa d3-mesa-far" />
-                    <div className="d3-mesa" />
                     <div className="a3-floor d3-sand" />
                     <Cactus3D x={25} z={-9} size={5} />
                     <Cactus3D x={43} z={-6} size={6.5} />
@@ -124,14 +122,6 @@ export function DuelScene3D({ battle, players, title, subtitle }) {
                         );
                     })}
                 </div>
-            </div>
-            <div className="d3-vignette" />
-            {/* Cinématique : bandes noires et titre */}
-            <div className="d3-bar d3-bar-top" />
-            <div className="d3-bar d3-bar-bottom" />
-            <div className="d3-title">
-                <span className="d3-title-main">★ {title} ★</span>
-                <span className="d3-title-sub">{subtitle}</span>
             </div>
         </div>
     );
