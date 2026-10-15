@@ -1472,3 +1472,76 @@ body { background: #f7f6f1; }
 .demo-video { display: block; width: 100%; aspect-ratio: 16 / 9; border-radius: var(--radius-lg); background: #000; box-shadow: var(--shadow-lg); }
 .demo-close { position: absolute; top: -52px; right: 0; background: var(--paper); }
 @media (prefers-reduced-motion: reduce) { .demo-play { animation: none; } }
+
+/* ---------- Réglages : choix en pastilles (émojis, manches) ---------- */
+.chips-lg .chip { font-size: 1rem; font-weight: 600; padding: 7px 16px; min-width: 48px; }
+.chips-lg .chip:disabled { opacity: 0.35; cursor: not-allowed; }
+.step-hint { margin: 8px 0 0; font-size: 0.86rem; color: var(--soft); }
+
+/* ---------- Battle : tout le combat tient dans l'écran ----------
+   Sur grand écran, l'arène occupe le haut (sa hauteur suit celle de la fenêtre),
+   la séquence et le calcul sont côte à côte, et les claviers dessous. */
+.battle { scroll-margin-top: 8px; }
+@media (min-width: 900px) {
+    .battle {
+        --arena-h: clamp(160px, calc(100dvh - 450px), 300px);
+        display: grid;
+        grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+        column-gap: 22px;
+        align-items: center;
+        padding-top: 14px;
+        padding-bottom: 16px;
+    }
+    .battle > * { grid-column: 1 / -1; }
+    .battle .board-top { margin-bottom: 8px; }
+    .battle .arena-wrap { padding: 6px 10px 2px; }
+    .battle .arena { max-height: var(--arena-h); }
+    .battle .arena3d { max-width: min(660px, calc(var(--arena-h) * 2.67)); margin-bottom: 6px; }
+    .battle .duel-scene { max-height: calc(var(--arena-h) + 16px); }
+    .battle .duel3d .a3-scene { width: min(100%, 660px, calc(var(--arena-h) * 2.67)); }
+    .battle .hp-row { margin-top: 8px; }
+    .battle .hp-name { font-size: 1rem; }
+    .battle .battle-status { margin: 8px 0 6px; }
+    /* Colonne de gauche : la séquence, sur deux lignes de la grille */
+    .battle > .battle-sequence {
+        grid-column: 1;
+        grid-row: span 2;
+        container-type: inline-size;
+        gap: 10px;
+        padding: 12px 10px 8px;
+        flex-wrap: nowrap;
+    }
+    .battle .battle-sequence .tile { --tile: min(50px, calc((100cqw - 20px - (var(--n) - 1) * 10px) / var(--n))); }
+    /* Colonne de droite : le minuteur de mémorisation, ou le calcul */
+    .battle > .memorize-foot { grid-column: 2; grid-row: span 2; margin: 0; gap: 12px; }
+    .battle .memorize-foot .timer { width: 100%; }
+    .battle .battle-question { display: contents; }
+    .battle .eq-tiles { grid-column: 2; justify-self: center; font-size: 1.65rem; gap: 10px; }
+    .battle .eq-clock { grid-column: 2; justify-self: center; margin-top: 4px; }
+    .battle .pads { grid-column: 1 / -1; margin-top: 12px; gap: 28px; }
+    .battle .pad-name { margin-bottom: 6px; }
+    .battle .pad-key { padding: 5px 0 3px; }
+    .battle .pad-value { font-size: 1.3rem; }
+    .battle .announce { font-size: clamp(2rem, 9vh, 4.5rem); }
+}
+/* Taille des cartes du Battle calculée sur la largeur disponible (aussi sur téléphone). */
+.battle .battle-sequence { container-type: inline-size; flex-wrap: nowrap; gap: 8px; }
+.battle .battle-sequence .tile { --tile: min(54px, calc((100cqw - 20px - (var(--n) - 1) * 8px) / var(--n))); }
+@media (min-width: 900px) { .battle .battle-sequence .tile { --tile: min(50px, calc((100cqw - 20px - (var(--n) - 1) * 10px) / var(--n))); } .battle .battle-sequence { gap: 10px; } }
+
+/* ---------- Réglages : longueur + émojis sur la même ligne, compteurs ---------- */
+.length-row { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 18px 40px; }
+.length-row .stepper { flex-wrap: nowrap; }
+.sub-title { font-size: 1rem; font-weight: 600; margin: 0 0 12px; }
+.emoji-pick-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.counter { display: inline-flex; align-items: center; gap: 10px; }
+.counter-value { min-width: 2.6em; text-align: center; font-family: var(--font-display); font-weight: 800; font-size: 2rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.counter-value small { font-size: 0.5em; font-weight: 700; color: var(--soft); margin-left: 2px; }
+.counter.is-muted .counter-value { opacity: 0.35; }
+.emoji-pick .chip { padding: 7px 14px; font-size: 0.95rem; font-weight: 600; }
+/* Pendant la mémorisation : comme avant, la séquence sur toute la largeur et le minuteur dessous. */
+@media (min-width: 900px) {
+    .battle:not(.has-question) > .battle-sequence { grid-column: 1 / -1; grid-row: auto; }
+    .battle:not(.has-question) > .memorize-foot { grid-column: 1 / -1; grid-row: auto; margin-top: 12px; gap: 12px; }
+    .battle:not(.has-question) .memorize-foot .timer { width: min(420px, 100%); }
+}

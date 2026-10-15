@@ -6,7 +6,10 @@ export const LEVELS = {
     hard: { seconds: 5 },
 };
 
-export const TOTAL_ROUNDS = 3;
+export const TOTAL_ROUNDS = 3; // valeur par défaut, réglable
+export const MAX_ROUNDS = 15;
+// Nombre de chiffres remplacés par des émojis : de 1 à tous, ou 'random' (au hasard).
+export const DEFAULT_EMOJIS = 2;
 export const MIN_LENGTH = 5;
 export const MAX_LENGTH = 9;
 
@@ -22,20 +25,30 @@ export function shuffle(list) {
 
 const pick = (list) => list[Math.floor(Math.random() * list.length)];
 
+/** Nombre d'émojis réellement utilisés : de 1 jusqu'à toute la séquence. */
+function emojiCountFor(length, emojis) {
+    if (emojis === 'random') return 1 + Math.floor(Math.random() * length);
+    const n = Number(emojis);
+    return Math.max(1, Math.min(length, Number.isFinite(n) ? n : DEFAULT_EMOJIS));
+}
+
 /**
  * Crée une séquence 1..n où quelques chiffres sont remplacés par des émojis.
- * Un émoji vaut sa position (1 = premier élément).
+ * Un émoji vaut sa position (1 = premier élément). "emojis" : un nombre, ou 'random'.
  */
-export function createSequence(themeItems, length) {
-    const emojiCount = length >= 8 ? 3 : 2;
-    // Toutes les positions sont possibles, y compris la première.
-    const emojiPositions = shuffle([...Array(length).keys()]).slice(0, emojiCount);
-    const emojis = shuffle(themeItems).slice(0, emojiCount);
-
-    return [...Array(length).keys()].map((i) => {
-        const slot = emojiPositions.indexOf(i);
-        return slot === -1 ? String(i + 1) : emojis[slot];
-    });
+export function createSequence(themeItems, length, emojis = DEFAULT_EMOJIS) {
+    const emojiCount = emojiCountFor(length, emojis);
+    // On retire jusqu'à obtenir une séquence qui permet au moins un calcul.
+    for (;;) {
+        // Toutes les positions sont possibles, y compris la première.
+        const emojiPositions = shuffle([...Array(length).keys()]).slice(0, emojiCount);
+        const picked = shuffle(themeItems).slice(0, emojiCount);
+        const sequence = [...Array(length).keys()].map((i) => {
+            const slot = emojiPositions.indexOf(i);
+            return slot === -1 ? String(i + 1) : picked[slot];
+        });
+        if (listCandidates(sequence).length > 0) return sequence;
+    }
 }
 
 const isEmoji = (item) => Number.isNaN(Number(item));
@@ -44,27 +57,34 @@ const isEmoji = (item) => Number.isNaN(Number(item));
  * Tire une équation « émoji ± chiffre » valide pour la séquence, avec ses
  * réponses possibles. "avoidKey" évite de reposer deux fois de suite la même.
  */
-export function createEquation(sequence, optionCount = 4, avoidKey = null) {
+function listCandidates(sequence) {
     const length = sequence.length;
-    // On liste toutes les équations valides puis on en tire une au hasard.
-    const candidates = [];
-    sequence.forEach((item) => {
-        if (isEmoji(item)) return;
-        const value = Number(item);
-        sequence.forEach((other, emoIdx) => {
-            if (!isEmoji(other)) return;
-            const emojiValue = emoIdx + 1;
-            if (emojiValue + value <= length) {
-                candidates.push({ op: '+', value, emoIdx, target: emojiValue + value - 1 });
-            }
-            if (emojiValue - value >= 1) {
-                candidates.push({ op: '-', value, emoIdx, target: emojiValue - value - 1 });
-            }
+    // Le chiffre du calcul est pris parmi les chiffres restés visibles ; si la
+    // séquence n'en a plus (ou aucun ne convient), n'importe quel chiffre de 1 à n-1.
+    const build = (values) => {
+        const list = [];
+        values.forEach((value) => {
+            sequence.forEach((other, emoIdx) => {
+                if (!isEmoji(other)) return;
+                const emojiValue = emoIdx + 1;
+                if (emojiValue + value <= length) list.push({ op: '+', value, emoIdx, target: emojiValue + value - 1 });
+                if (emojiValue - value >= 1) list.push({ op: '-', value, emoIdx, target: emojiValue - value - 1 });
+            });
         });
-    });
+        return list;
+    };
+    const digits = sequence.filter((item) => !isEmoji(item)).map(Number);
+    let candidates = build(digits);
+    if (candidates.length === 0) candidates = build([...Array(length - 1).keys()].map((k) => k + 1));
+    return candidates;
+}
+
+export function createEquation(sequence, optionCount = 4, avoidKey = null) {
+    // On liste toutes les équations valides puis on en tire une au hasard.
+    const candidates = listCandidates(sequence);
     const keyOf = (c) => `${c.emoIdx}${c.op}${c.value}`;
     const fresh = candidates.filter((c) => keyOf(c) !== avoidKey);
-    // Il existe toujours au moins une équation valide pour 5 ≤ n ≤ 9.
+    // createSequence garantit au moins une équation valide.
     const chosen = pick(fresh.length > 0 ? fresh : candidates);
     const answer = sequence[chosen.target];
 
@@ -86,8 +106,8 @@ export function createEquation(sequence, optionCount = 4, avoidKey = null) {
 }
 
 /** Une manche solo : une séquence et une équation à 4 réponses. */
-export function createRound(themeItems, length) {
-    const sequence = createSequence(themeItems, length);
+export function createRound(themeItems, length, emojis) {
+    const sequence = createSequence(themeItems, length, emojis);
     return { sequence, ...createEquation(sequence, 4) };
 }
 

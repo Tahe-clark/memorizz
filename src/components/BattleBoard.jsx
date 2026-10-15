@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { DUEL_PEEK, MAX_HP, useBattle } from '../hooks/useBattle';
+import { useEffect, useRef } from 'react';
+import { DUEL_PEEK, MAX_HP, roundsToWin, useBattle } from '../hooks/useBattle';
 import { useI18n } from '../i18n/context';
 import { roundCall } from '../utils/announcer';
 import Arena from './Arena';
@@ -15,11 +15,18 @@ const KEYS = [
     { codes: ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5'], labels: ['1', '2', '3', '4', '5'] },
 ];
 const NUMPAD = ['Numpad1', 'Numpad2', 'Numpad3', 'Numpad4', 'Numpad5'];
-const TOTAL_ROUNDS = 3;
 
 export default function BattleBoard({ config, players, onMatchFinished, onQuit }) {
     const { t } = useI18n();
     const battle = useBattle({ ...config, onMatchFinished });
+    const totalRounds = config.rounds ?? 3;
+    // Au lancement, le plateau est cadré en haut de l'écran : le combat et les réponses restent visibles ensemble.
+    const panelRef = useRef(null);
+    const fighting = battle.phase !== 'memorize';
+    useEffect(() => {
+        // Recadré aussi quand le combat commence : la mise en page change à ce moment-là.
+        panelRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    }, [fighting]);
     const { phase, question, event } = battle;
     const { equation, options } = question;
     const names = players.map((p) => p.name);
@@ -57,6 +64,7 @@ export default function BattleBoard({ config, players, onMatchFinished, onQuit }
         return () => window.removeEventListener('keydown', onKey);
     }, [phase, options, battle, cpu]);
 
+    const showQuestion = phase !== 'memorize' && phase !== 'duelIntro' && phase !== 'duelPeek';
     let status = t('battle.fight');
     if (stage === 'charge') status = t('battle.finisher', { name: names[battle.roundWinner] });
     else if (phase === 'memorize') status = t('battle.memorize');
@@ -73,11 +81,15 @@ export default function BattleBoard({ config, players, onMatchFinished, onQuit }
     else if (phase === 'resolve') status = t('battle.timeout');
 
     return (
-        <div className="panel panel-wide battle" style={{ '--p0': players[0].color, '--p1': players[1].color }}>
+        <div
+            ref={panelRef}
+            className={`panel panel-wide battle ${showQuestion ? 'has-question' : ''}`}
+            style={{ '--p0': players[0].color, '--p1': players[1].color, '--n': battle.sequence.length }}
+        >
             <div className="board-top">
                 <div className="round-info">
                     <span className="battle-pips" aria-hidden="true">
-                        {Array.from({ length: TOTAL_ROUNDS }, (_, i) => {
+                        {Array.from({ length: Math.max(totalRounds, battle.round) }, (_, i) => {
                             const winner = battle.roundResults[i];
                             if (winner !== undefined) return <span key={i} className={`pip won-${winner}`} />;
                             if (i === battle.round - 1) return <span key={i} className="pip-fire">🔥</span>;
@@ -113,7 +125,7 @@ export default function BattleBoard({ config, players, onMatchFinished, onQuit }
                     </button>
                 )}
                 {/* Grand texte de l'annonceur : manche, « Fight! », « K.O.! » */}
-                {phase === 'memorize' && <div key={`r${battle.round}`} className="announce">{roundCall(battle.round)}</div>}
+                {phase === 'memorize' && <div key={`r${battle.round}`} className="announce">{roundCall(battle.round, battle.decider)}</div>}
                 {phase === 'fight' && battle.questionId === 0 && <div key={`f${battle.round}`} className="announce is-fight">Fight!</div>}
                 {phase === 'duel' && <div key={`d${battle.round}`} className="announce is-fight">Draw!</div>}
                 {stage === 'charge' && <div key="fin" className="announce is-super">Final blow!</div>}
@@ -127,7 +139,7 @@ export default function BattleBoard({ config, players, onMatchFinished, onQuit }
                         <div className="hp-head">
                             <span className="hp-name">{names[player]}</span>
                             <span className="hp-wins" aria-label={t('battle.wins', { n: battle.wins[player] })}>
-                                {[0, 1].map((i) => <span key={i} className={i < battle.wins[player] ? 'on' : ''} />)}
+                                {Array.from({ length: roundsToWin(totalRounds) }, (_, i) => <span key={i} className={i < battle.wins[player] ? 'on' : ''} />)}
                             </span>
                         </div>
                         <div

@@ -9,8 +9,11 @@ import { createEquation, createSequence, LEVELS } from '../utils/wordswap';
 export const MAX_HP = 100;
 export const HIT_DAMAGE = 34;      // 3 bons coups = K.O.
 export const COUNTER_DAMAGE = 17;  // mauvaise réponse : l'adversaire esquive et contre
-export const ROUNDS_TO_WIN = 2;    // match en 3 manches
-const FINAL_ROUND = 3;
+// Nombre de manches réglable : il faut en gagner la majorité. Avec un nombre
+// pair, une égalité se départage par une manche décisive supplémentaire.
+export const roundsToWin = (rounds) => Math.floor(rounds / 2) + 1;
+// Manche décisive : les deux joueurs sont à une victoire du match.
+export const isDecider = (wins, rounds) => wins.every((w) => w === roundsToWin(rounds) - 1);
 export const OPTION_COUNT = 5;
 // Le combat est calé sur le tempo de la musique : les calculs arrivent sur un
 // temps et les coups touchent sur une croche (voir utils/music.js).
@@ -81,10 +84,10 @@ function reducer(state, action) {
                     hp,
                     wins,
                     phase: 'ko',
-                    finisher: state.round >= FINAL_ROUND,
+                    finisher: isDecider(state.wins, state.totalRounds),
                     roundWinner: player,
                     roundResults: [...state.roundResults, player],
-                    matchWinner: wins[player] >= ROUNDS_TO_WIN ? player : null,
+                    matchWinner: wins[player] >= roundsToWin(state.totalRounds) ? player : null,
                     event: { ...event, type: 'hit' },
                 };
             }
@@ -103,10 +106,10 @@ function reducer(state, action) {
                 hp,
                 wins,
                 phase: 'ko',
-                finisher: state.round >= FINAL_ROUND,
+                finisher: isDecider(state.wins, state.totalRounds),
                 roundWinner: rival,
                 roundResults: [...state.roundResults, rival],
-                matchWinner: wins[rival] >= ROUNDS_TO_WIN ? rival : null,
+                matchWinner: wins[rival] >= roundsToWin(state.totalRounds) ? rival : null,
                 event: { ...event, type: 'counter' },
             };
         }
@@ -153,7 +156,7 @@ function reducer(state, action) {
                 duel: { ...state.duel, winner: player },
                 roundWinner: player,
                 roundResults: [...state.roundResults, player],
-                matchWinner: wins[player] >= ROUNDS_TO_WIN ? player : null,
+                matchWinner: wins[player] >= roundsToWin(state.totalRounds) ? player : null,
                 event: { ...event, type: 'duelShot' },
             };
         }
@@ -181,15 +184,16 @@ function reducer(state, action) {
     }
 }
 
-export function useBattle({ theme, level, sequenceLength, duel: duelEnabled = true, cpu = null, onMatchFinished }) {
+export function useBattle({ theme, level, sequenceLength, emojis, rounds = 3, duel: duelEnabled = true, cpu = null, onMatchFinished }) {
     const seconds = LEVELS[level].seconds;
     const items = THEMES[theme].items;
 
     const [state, dispatch] = useReducer(reducer, null, () => {
-        const sequence = createSequence(items, sequenceLength);
+        const sequence = createSequence(items, sequenceLength, emojis);
         return {
             ...newRoundState(sequence, createEquation(sequence, OPTION_COUNT), seconds),
             round: 1,
+            totalRounds: rounds,
             wins: [0, 0],
             roundResults: [],
             matchWinner: null,
@@ -253,7 +257,8 @@ export function useBattle({ theme, level, sequenceLength, duel: duelEnabled = tr
 
     // L'annonceur appelle chaque manche (« Round 1 », « Final round »).
     useEffect(() => {
-        announce(roundVoice(state.round));
+        announce(roundVoice(state.round, isDecider(state.wins, state.totalRounds)));
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- seulement au début de chaque manche
     }, [state.round]);
 
     // Minuteries : une seule active à la fois, annulée si on quitte ou si la phase change.
@@ -286,12 +291,12 @@ export function useBattle({ theme, level, sequenceLength, duel: duelEnabled = tr
                     finishedRef.current({ winner: matchWinner, wins });
                     return;
                 }
-                const next = createSequence(items, sequenceLength);
+                const next = createSequence(items, sequenceLength, emojis);
                 dispatch({ type: 'nextRound', sequence: next, question: createEquation(next, OPTION_COUNT), seconds });
             }, msToGrid(KO_DELAY + extra + (state.finisher ? FINISHER_CHARGE + FINISHER_BLAST : 0)));
         }
         return () => clearTimeout(id);
-    }, [phase, countdown, questionId, sequence, question, matchWinner, wins, items, sequenceLength, seconds, extra, state.finisher]);
+    }, [phase, countdown, questionId, sequence, question, matchWinner, wins, items, sequenceLength, emojis, seconds, extra, state.finisher]);
 
     // --- Réponses calées sur le tempo ---
     // Le premier joueur qui appuie est retenu tout de suite (l'autre ne peut plus
@@ -399,7 +404,7 @@ export function useBattle({ theme, level, sequenceLength, duel: duelEnabled = tr
         if (!cactusVisible || phase !== 'fight') return; // on ne l'attrape pas pendant un coup
         clearTimeout(pendingRef.current.timer); // un coup en attente est annulé
         setCactus(null);
-        const cards = createSequence(items, sequenceLength);
+        const cards = createSequence(items, sequenceLength, emojis);
         dispatch({ type: 'duelStart', sequence: cards, question: createEquation(cards, OPTION_COUNT) });
     };
 
@@ -413,6 +418,7 @@ export function useBattle({ theme, level, sequenceLength, duel: duelEnabled = tr
 
     return {
         ...state,
+        decider: isDecider(state.wins, state.totalRounds),
         seconds,
         equationSeconds: (EQUATION_BEATS * BEAT_MS) / 1000,
         pending: activePending,

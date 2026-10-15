@@ -7,6 +7,19 @@ import { isMuted } from './audio';
 export const VOICE_LINES = {
     round1: 'Round 1',
     round2: 'Round 2',
+    round3: 'Round 3',
+    round4: 'Round 4',
+    round5: 'Round 5',
+    round6: 'Round 6',
+    round7: 'Round 7',
+    round8: 'Round 8',
+    round9: 'Round 9',
+    round10: 'Round 10',
+    round11: 'Round 11',
+    round12: 'Round 12',
+    round13: 'Round 13',
+    round14: 'Round 14',
+    round15: 'Round 15',
     final: 'Final round',
     fight: 'Fight!',
     ko: 'K O!',
@@ -71,7 +84,7 @@ export function announce(id) {
     audio.play().catch(fallback);
 }
 
-/** Texte affiché pour une manche : la 3e est la manche décisive. */
-export const roundCall = (round) => (round >= 3 ? 'Final round' : `Round ${round}`);
+/** Texte affiché pour une manche : la dernière possible est la manche décisive. */
+export const roundCall = (round, decider = false) => (decider ? 'Final round' : `Round ${round}`);
 /** Réplique de l'annonceur pour une manche. */
-export const roundVoice = (round) => (round >= 3 ? 'final' : `round${round}`);
+export const roundVoice = (round, decider = false) => (decider ? 'final' : `round${round}`);

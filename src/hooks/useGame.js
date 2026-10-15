@@ -5,11 +5,11 @@ import { createRound, LEVELS, TOTAL_ROUNDS } from '../utils/wordswap';
 
 const NEXT_ROUND_DELAY = 1400;
 
-export function useGame({ theme, level, sequenceLength, onGameFinished }) {
+export function useGame({ theme, level, sequenceLength, emojis, rounds = TOTAL_ROUNDS, onGameFinished }) {
     const seconds = LEVELS[level].seconds;
     const makeRound = useCallback(
-        () => createRound(THEMES[theme].items, sequenceLength),
-        [theme, sequenceLength],
+        () => createRound(THEMES[theme].items, sequenceLength, emojis),
+        [theme, sequenceLength, emojis],
     );
 
     const [currentRound, setCurrentRound] = useState(1);
@@ -76,7 +76,7 @@ export function useGame({ theme, level, sequenceLength, onGameFinished }) {
         setHistory(updated);
 
         later(() => {
-            if (currentRound >= TOTAL_ROUNDS) {
+            if (currentRound >= rounds) {
                 finishedRef.current(updated);
                 return;
             }
@@ -91,7 +91,7 @@ export function useGame({ theme, level, sequenceLength, onGameFinished }) {
 
     return {
         currentRound,
-        totalRounds: TOTAL_ROUNDS,
+        totalRounds: rounds,
         seconds,
         sequence: round.sequence,
         equation: round.equation,

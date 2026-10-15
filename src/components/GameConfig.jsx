@@ -1,15 +1,44 @@
 import { useState } from 'react';
 import { THEMES } from '../data/themes';
 import { useI18n } from '../i18n/context';
-import { CPU_LEVELS } from '../hooks/useBattle';
-import { LEVELS, MAX_LENGTH, MIN_LENGTH } from '../utils/wordswap';
+import { CPU_LEVELS, roundsToWin } from '../hooks/useBattle';
+import { LEVELS, MAX_LENGTH, MAX_ROUNDS, MIN_LENGTH } from '../utils/wordswap';
 import PlayerEditor from './PlayerEditor';
+
+// Petit compteur « − valeur + » réutilisé pour les émojis et les manches.
+function Counter({ value, min, max, onChange, label, muted = false, suffix = null }) {
+    const { t } = useI18n();
+    return (
+        <div className={`counter ${muted ? 'is-muted' : ''}`} role="group" aria-label={label}>
+            <button type="button" className="icon-button" onClick={() => onChange(Math.max(min, value - 1))} disabled={value <= min} aria-label={t('config.less')}>
+                <i className="fa-solid fa-minus" aria-hidden="true"></i>
+            </button>
+            <span className="counter-value" aria-live="polite">
+                {value}
+                {suffix && <small>{suffix}</small>}
+            </span>
+            <button type="button" className="icon-button" onClick={() => onChange(Math.min(max, value + 1))} disabled={value >= max} aria-label={t('config.more')}>
+                <i className="fa-solid fa-plus" aria-hidden="true"></i>
+            </button>
+        </div>
+    );
+}
 
 export default function GameConfig({ game, initialConfig, onStart, onBack }) {
     const { t } = useI18n();
     const [level, setLevel] = useState(initialConfig.level);
     const [sequenceLength, setSequenceLength] = useState(initialConfig.sequenceLength);
     const [theme, setTheme] = useState(initialConfig.theme);
+    const [emojis, setEmojis] = useState(initialConfig.emojis ?? 2); // un nombre, ou 'random'
+    const [lastEmojis, setLastEmojis] = useState(initialConfig.emojis === 'random' ? 2 : initialConfig.emojis ?? 2);
+    const [rounds, setRounds] = useState(initialConfig.rounds ?? 3);
+    const isRandom = emojis === 'random';
+    // On peut remplacer de 1 chiffre jusqu'à toute la séquence.
+    const emojiCount = Math.min(isRandom ? lastEmojis : emojis, sequenceLength);
+    const pickEmojis = (n) => {
+        setEmojis(n);
+        setLastEmojis(n);
+    };
     const isBattle = game.players === 2;
     const [players, setPlayers] = useState(initialConfig.players);
 
@@ -24,7 +53,7 @@ export default function GameConfig({ game, initialConfig, onStart, onBack }) {
     const icon = (name) => `${import.meta.env.BASE_URL}icons/${name}.png`;
 
     const start = () => {
-        const settings = { level, sequenceLength, theme };
+        const settings = { level, sequenceLength, theme, emojis: isRandom ? 'random' : emojiCount, rounds };
         onStart(isBattle ? { ...settings, view, duel, cpu, players: players.map((p) => ({ ...p, name: p.name.trim() })) } : settings);
     };
 
@@ -107,6 +136,8 @@ export default function GameConfig({ game, initialConfig, onStart, onBack }) {
                 </li>
 
                 <li className="step" hidden={isBattle && tab !== 1}>
+                    <div className="length-row">
+                    <div>
                     <h2 className="step-title">{t('config.step2')}</h2>
                     <div className="stepper">
                         <button
@@ -136,6 +167,29 @@ export default function GameConfig({ game, initialConfig, onStart, onBack }) {
                             <i className="fa-solid fa-plus" aria-hidden="true"></i>
                         </button>
                         <span className="text-soft small">{t('config.step2Hint')}</span>
+                    </div>
+                    </div>
+                    {/* À droite de la longueur : combien de chiffres deviennent des émojis */}
+                    <div className="emoji-pick">
+                        <h3 className="sub-title">{t('config.emojis')}</h3>
+                        <div className="emoji-pick-row">
+                            <Counter
+                                value={emojiCount}
+                                min={1}
+                                max={sequenceLength}
+                                onChange={pickEmojis}
+                                label={t('config.emojis')}
+                                muted={isRandom}
+                                suffix={`/${sequenceLength}`}
+                            />
+                            <button type="button" className={`chip ${isRandom ? 'is-active' : ''}`} aria-pressed={isRandom} onClick={() => setEmojis(isRandom ? lastEmojis : 'random')}>
+                                🎲 {t('config.random')}
+                            </button>
+                        </div>
+                        <p className="step-hint">
+                            {isRandom ? t('config.emojisRandom', { n: sequenceLength }) : emojiCount === sequenceLength ? t('config.emojisAll') : t('config.emojisHint', { n: emojiCount, total: sequenceLength })}
+                        </p>
+                    </div>
                     </div>
                 </li>
 
@@ -197,6 +251,16 @@ export default function GameConfig({ game, initialConfig, onStart, onBack }) {
                         </div>
                     </li>
                 )}
+                <li className="step" hidden={isBattle && tab !== 2}>
+                    <h2 className="step-title">{t('config.rounds')}</h2>
+                    <Counter value={rounds} min={1} max={MAX_ROUNDS} onChange={setRounds} label={t('config.rounds')} />
+                    {isBattle && (
+                        <p className="step-hint">
+                            {rounds === 1 ? t('config.roundsWin1') : t('config.roundsWin', { n: roundsToWin(rounds) })}
+                            {rounds > 1 && rounds % 2 === 0 && ` ${t('config.roundsTie')}`}
+                        </p>
+                    )}
+                </li>
             </ol>
 
             {isBattle ? (
@@ -216,7 +280,7 @@ export default function GameConfig({ game, initialConfig, onStart, onBack }) {
                 </div>
             ) : (
                 <button type="button" className="btn-mz btn-mz-sun btn-mz-large w-100" onClick={start}>
-                    {t('config.start')}
+                    {rounds === 1 ? t('config.start1') : t('config.start', { n: rounds })}
                 </button>
             )}
         </div>

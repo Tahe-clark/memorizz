@@ -17,8 +17,8 @@ import { setMusicMood, startMusic } from './utils/music';
 import { readStorage, writeStorage } from './utils/storage';
 import { computeScore } from './utils/wordswap';
 
-const DEFAULT_CONFIG = { theme: 'animals', level: 'easy', sequenceLength: 7 };
-const DEFAULT_BATTLE_CONFIG = { theme: 'animals', level: 'medium', sequenceLength: 5, view: '2d', duel: true, cpu: null, players: DEFAULT_PLAYERS };
+const DEFAULT_CONFIG = { theme: 'animals', level: 'easy', sequenceLength: 7, emojis: 2, rounds: 3 };
+const DEFAULT_BATTLE_CONFIG = { theme: 'animals', level: 'medium', sequenceLength: 5, emojis: 2, rounds: 3, view: '2d', duel: true, cpu: null, players: DEFAULT_PLAYERS };
 
 const loadConfig = (gameId) => {
     const saved = readStorage(`${gameId}:config`, {});
