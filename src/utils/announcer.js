@@ -55,6 +55,7 @@ function speak(text) {
     try {
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
+        utterance.volume = 0.6;
         utterance.lang = 'en-US';
         if (voice) utterance.voice = voice;
         utterance.pitch = 0.4;
@@ -75,6 +76,7 @@ export function announce(id) {
         return;
     }
     const audio = new Audio(`${VOICE_FOLDER}${id}.mp3`);
+    audio.volume = 0.6;
     current = audio;
     const fallback = () => {
         if (missing.has(id)) return;

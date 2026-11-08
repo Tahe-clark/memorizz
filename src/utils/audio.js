@@ -18,8 +18,11 @@ function getContext() {
         // Un compresseur adoucit les pics quand plusieurs sons se superposent.
         const compressor = ctx.createDynamicsCompressor();
         master = ctx.createGain();
-        master.gain.value = 0.7;
+        // Volume général des bruitages, volontairement doux.
+        master.gain.value = 0.4;
         master.connect(compressor);
+        compressor.threshold.value = -20;
+        compressor.ratio.value = 6;
         compressor.connect(ctx.destination);
     }
     if (ctx.state === 'suspended') ctx.resume();
@@ -183,6 +186,39 @@ function pluck(c, freq, at = 0, volume = 0.16, duration = 1.6) {
 }
 
 const SOUNDS = {
+    // ---- Escape ----
+    // Pas feutré sur le plancher
+    step: (c) => {
+        noise(c, { freq: 260, filter: 'lowpass', duration: 0.09, volume: 0.22, attack: 0.004 });
+        tone(c, { freq: 90, to: 60, duration: 0.08, volume: 0.12 });
+    },
+    // Choc contre un mur : bruit sourd qui résonne
+    bump: (c) => {
+        tone(c, { freq: 110, to: 45, duration: 0.3, volume: 0.5, attack: 0.002 });
+        noise(c, { freq: 400, filter: 'lowpass', duration: 0.25, volume: 0.35, attack: 0.002 });
+        noise(c, { freq: 1800, q: 3, at: 0.02, duration: 0.12, volume: 0.08 });
+    },
+    // Interrupteur, puis le courant qui se coupe
+    lightsout: (c) => {
+        noise(c, { freq: 3800, q: 5, duration: 0.03, volume: 0.35, attack: 0.001 });
+        tone(c, { freq: 120, to: 40, type: 'sawtooth', at: 0.04, duration: 0.6, volume: 0.06 });
+    },
+    // Grognement du monstre quand il approche
+    creature: (c) => {
+        tone(c, { freq: 72, to: 55, type: 'sawtooth', duration: 0.7, volume: 0.09, attack: 0.08 });
+        noise(c, { freq: 220, to: 140, q: 2, duration: 0.7, volume: 0.14, attack: 0.1 });
+    },
+    // Attrapé !
+    caught: (c) => {
+        tone(c, { freq: 420, to: 90, type: 'sawtooth', duration: 0.7, volume: 0.16, attack: 0.005 });
+        noise(c, { freq: 900, to: 200, duration: 0.8, volume: 0.3, attack: 0.005 });
+        tone(c, { freq: 60, to: 30, duration: 0.9, volume: 0.5, attack: 0.005 });
+    },
+    // Trappe ouverte : sortie trouvée
+    escape: (c) => {
+        [523.3, 659.3, 784, 1046.5].forEach((f, i) => bell(c, f, i * 0.09, 0.08, 0.8));
+        noise(c, { freq: 1200, to: 4000, at: 0.05, duration: 0.5, volume: 0.06, attack: 0.1 });
+    },
     // Bonne réponse : deux notes claires qui montent
     success: (c) => {
         bell(c, 659.25, 0, 0.09, 0.35);
@@ -285,3 +321,44 @@ export function playSound(type) {
         console.warn("L'API Web Audio est bloquée ou non supportée par votre navigateur.", e);
     }
 }
+
+// Ambiance sombre d'Escape : un bourdonnement grave qui ondule, joué en boucle.
+let drone = null;
+export function startDrone() {
+    if (muted || drone) return;
+    const c = getContext();
+    if (!c) return;
+    const gain = c.createGain();
+    gain.gain.setValueAtTime(0.0001, c.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.09, c.currentTime + 1.5);
+    const lowpass = c.createBiquadFilter();
+    lowpass.type = 'lowpass';
+    lowpass.frequency.value = 260;
+    const oscs = [55, 55.7, 82.4].map((freq) => {
+        const osc = c.createOscillator();
+        osc.type = 'sawtooth';
+        osc.frequency.value = freq;
+        osc.connect(lowpass);
+        osc.start();
+        return osc;
+    });
+    const lfo = c.createOscillator();
+    const lfoGain = c.createGain();
+    lfo.frequency.value = 0.12;
+    lfoGain.gain.value = 120;
+    lfo.connect(lfoGain);
+    lfoGain.connect(lowpass.frequency);
+    lfo.start();
+    lowpass.connect(gain);
+    gain.connect(master);
+    drone = { c, gain, nodes: [...oscs, lfo] };
+}
+
+export function stopDrone() {
+    if (!drone) return;
+    const { c, gain, nodes } = drone;
+    gain.gain.setTargetAtTime(0.0001, c.currentTime, 0.3);
+    nodes.forEach((node) => node.stop(c.currentTime + 1.2));
+    drone = null;
+}
+

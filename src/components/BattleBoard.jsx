@@ -8,6 +8,7 @@ import BeatDots from './BeatDots';
 import Confetti from './Confetti';
 import DuelCinematic from './DuelCinematic';
 import DuelScene from './DuelScene';
+import Stage3D from './Stage3D';
 import Tile from './Tile';
 
 // Touches de chaque joueur (positions physiques du clavier).
@@ -106,11 +107,13 @@ export default function BattleBoard({ config, players, onMatchFinished, onQuit }
             </div>
 
             <div className={`arena-wrap ${duel ? 'is-duel' : ''} ${stage ? `fin-${stage}` : ''}`}>
-                {duel && config.view === '3d' && <DuelScene3D battle={battle} players={players} />}
+                {duel && config.view === '3d' && <Stage3D mode="duel" battle={battle} players={players} fallback={<DuelScene3D battle={battle} players={players} />} />}
                 {duel && config.view !== '3d' && <DuelScene battle={battle} players={players} />}
                 {phase === 'duelIntro' && <DuelCinematic key={`cine${battle.round}`} players={players} title={t('duel.title')} subtitle={t('duel.subtitle')} />}
                 {battle.taunt !== null && <div className={`taunt taunt-${battle.taunt}`}>Adios muchachos !</div>}
-                {!duel && (config.view === '3d' ? <Arena3D battle={battle} players={players} /> : <Arena battle={battle} players={players} />)}
+                {!duel && (config.view === '3d'
+                    ? <Stage3D mode="ring" battle={battle} players={players} fallback={<Arena3D battle={battle} players={players} />} />
+                    : <Arena battle={battle} players={players} />)}
                 {/* La boule de cactus : un clic (ou Espace) lance le duel au Far West */}
                 {battle.cactusVisible && (
                     <button type="button" className="cactus-ball" onClick={battle.grabCactus} aria-label={t('duel.grab')} title={t('duel.grab')}>

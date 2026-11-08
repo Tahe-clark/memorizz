@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import BattleBoard from './components/BattleBoard';
 import BattleOver from './components/BattleOver';
+import EscapeBoard from './components/EscapeBoard';
+import EscapeConfig from './components/EscapeConfig';
+import EscapeOver from './components/EscapeOver';
 import Footer from './components/Footer';
 import GameBoard from './components/GameBoard';
 import GameConfig from './components/GameConfig';
@@ -20,8 +23,11 @@ import { computeScore } from './utils/wordswap';
 const DEFAULT_CONFIG = { theme: 'animals', level: 'easy', sequenceLength: 7, emojis: 2, rounds: 3 };
 const DEFAULT_BATTLE_CONFIG = { theme: 'animals', level: 'medium', sequenceLength: 5, emojis: 2, rounds: 3, view: '2d', duel: true, cpu: null, players: DEFAULT_PLAYERS };
 
+const DEFAULT_ESCAPE_CONFIG = { level: 'easy', sequenceLength: 7, emojis: 2, theme: 'animals', size: 'small', monster: 'normal', rounds: 3, view: '2d' };
+
 const loadConfig = (gameId) => {
     const saved = readStorage(`${gameId}:config`, {});
+    if (gameId === 'escape') return { ...DEFAULT_ESCAPE_CONFIG, ...saved };
     if (gameId !== 'battle') return { ...DEFAULT_CONFIG, ...saved };
     const config = { ...DEFAULT_BATTLE_CONFIG, ...saved };
     // Anciennes sauvegardes : seulement des noms, ou des joueurs incomplets.
@@ -81,6 +87,17 @@ export default function App() {
         setView('score');
     }, []);
 
+    const finishEscape = useCallback((roundHistory) => {
+        // Score moyen des maisons, en %, et record enregistré.
+        const score = Math.round(roundHistory.reduce((sum, r) => sum + r.score, 0) / roundHistory.length);
+        const previousBest = readStorage('best:escape', 0);
+        const isNewBest = score > previousBest;
+        if (isNewBest) writeStorage('best:escape', score);
+        if (roundHistory.some((r) => r.escaped)) playSound('win');
+        setResult({ history: roundHistory, score, best: Math.max(score, previousBest), isNewBest });
+        setView('score');
+    }, []);
+
     const finishBattle = useCallback((matchResult) => {
         playSound('win');
         announce('winner');
@@ -95,6 +112,9 @@ export default function App() {
         return { ...player, name: player.name || fallback };
     });
     const isBattle = gameId === 'battle';
+    const isEscape = gameId === 'escape';
+    // L'aventurier d'Escape reprend l'avatar du joueur 1 de Battle.
+    const escapePlayer = normalizePlayer(readStorage('battle:config', {}).players?.[0], 0);
 
     return (
         <div className="app">
@@ -108,18 +128,27 @@ export default function App() {
             <main className="container main-area">
                 {view === 'home' && <Home onPlay={openGame} />}
 
-                {view === 'config' && (
+                {view === 'config' && isEscape && (
+                    <EscapeConfig key={gameId} game={game} initialConfig={config} onStart={startGame} onBack={goHome} />
+                )}
+                {view === 'config' && !isEscape && (
                     <GameConfig key={gameId} game={game} initialConfig={config} onStart={startGame} onBack={goHome} />
                 )}
 
-                {view === 'play' && !isBattle && (
+                {view === 'play' && isEscape && (
+                    <EscapeBoard key={gameKey} config={config} player={escapePlayer} onFinished={finishEscape} onQuit={goHome} />
+                )}
+                {view === 'play' && !isBattle && !isEscape && (
                     <GameBoard key={gameKey} config={config} onGameFinished={finishGame} onQuit={goHome} />
                 )}
                 {view === 'play' && isBattle && (
                     <BattleBoard key={gameKey} config={config} players={players} onMatchFinished={finishBattle} onQuit={goHome} />
                 )}
 
-                {view === 'score' && result && !isBattle && (
+                {view === 'score' && result && isEscape && (
+                    <EscapeOver result={result} onReplay={() => startGame(config)} onSettings={() => setView('config')} onHome={goHome} />
+                )}
+                {view === 'score' && result && !isBattle && !isEscape && (
                     <GameOver
                         result={result}
                         onReplay={() => startGame(config)}

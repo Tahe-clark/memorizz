@@ -1,6 +1,7 @@
 import { useI18n } from '../i18n/context';
 import { Podium3D } from './Arena3D';
 import { AvatarFigure } from './Avatar';
+import Stage3D from './Stage3D';
 import Confetti from './Confetti';
 
 export default function BattleOver({ result, players, view, onRematch, onSettings, onHome }) {
@@ -33,7 +34,9 @@ export default function BattleOver({ result, players, view, onRematch, onSetting
 
             {view === '3d' ? (
                 <>
-                    <div className="podium-stage"><Podium3D players={players} winner={winner} /></div>
+                    <div className="podium-stage">
+                        <Stage3D mode="podium" players={players} winner={winner} fallback={<Podium3D players={players} winner={winner} />} />
+                    </div>
                     <ul className="round-list">
                         {[winner, loser].map((player, i) => (
                             <li key={player}>

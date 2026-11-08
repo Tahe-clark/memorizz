@@ -57,7 +57,7 @@ const isEmoji = (item) => Number.isNaN(Number(item));
  * Tire une équation « émoji ± chiffre » valide pour la séquence, avec ses
  * réponses possibles. "avoidKey" évite de reposer deux fois de suite la même.
  */
-function listCandidates(sequence) {
+export function listCandidates(sequence) {
     const length = sequence.length;
     // Le chiffre du calcul est pris parmi les chiffres restés visibles ; si la
     // séquence n'en a plus (ou aucun ne convient), n'importe quel chiffre de 1 à n-1.

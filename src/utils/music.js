@@ -43,7 +43,7 @@ const BASS = [
 ];
 const STAB = [6, 14]; // petit accord à contretemps
 
-const VOLUME = { menu: 0.3, battle: 0.42, fight: 0.42 };
+const VOLUME = { menu: 0.18, battle: 0.25, fight: 0.25 }; // musique en fond, douce
 
 let enabled = readStorage('music', true);
 let mood = 'menu';
@@ -209,7 +209,7 @@ function stop() {
    public/music.mp3 est joué en boucle sur l'accueil, les réglages et les bilans.
    S'il n'existe pas, le beat généré (version douce) le remplace. */
 const SONG_URL = `${import.meta.env.BASE_URL}music.mp3`;
-const SONG_VOLUME = 0.45;
+const SONG_VOLUME = 0.25;
 const FIGHT_URL = `${import.meta.env.BASE_URL}battle.mp3`;
 let fight = null; // le morceau des combats
 let fightState = 'unknown'; // 'unknown' | 'none'
@@ -224,7 +224,7 @@ export function startMusic() {
         if (!fight) {
             fight = new Audio(FIGHT_URL);
             fight.loop = true;
-            fight.volume = 0.5;
+            fight.volume = 0.28;
             fight.addEventListener('error', () => {
                 fightState = 'none'; // pas de fichier : le beat généré prend le relais
                 fight = null;
@@ -289,11 +289,15 @@ export function playTrack(url) {
     stopTrack();
     if (!enabled) return;
     stop();
-    track = new Audio(url);
+    const audio = new Audio(url);
+    track = audio;
     track.loop = true;
-    track.volume = 0.55;
+    track.volume = 0.3;
     track.play().catch(() => {
         // Lecture refusée ou fichier absent : on garde la musique générée.
+        // (Seulement si ce morceau est toujours le morceau en cours : un ancien
+        // morceau arrêté entre-temps ne doit pas relancer la musique des menus.)
+        if (track !== audio) return;
         track = null;
         startMusic();
     });
@@ -303,8 +307,8 @@ export function playTrack(url) {
 export function duckMusic(ms = 1600) {
     const target = track ?? (fight && !fight.paused ? fight : null);
     if (!target) return;
-    const normal = target === track ? 0.55 : 0.5;
-    target.volume = 0.12;
+    const normal = target === track ? 0.3 : 0.28;
+    target.volume = 0.07;
     clearTimeout(duckMusic.timer);
     duckMusic.timer = setTimeout(() => {
         target.volume = normal;

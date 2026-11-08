@@ -6,7 +6,7 @@ import { LEVELS, MAX_LENGTH, MAX_ROUNDS, MIN_LENGTH } from '../utils/wordswap';
 import PlayerEditor from './PlayerEditor';
 
 // Petit compteur « − valeur + » réutilisé pour les émojis et les manches.
-function Counter({ value, min, max, onChange, label, muted = false, suffix = null }) {
+export function Counter({ value, min, max, onChange, label, muted = false, suffix = null }) {
     const { t } = useI18n();
     return (
         <div className={`counter ${muted ? 'is-muted' : ''}`} role="group" aria-label={label}>
