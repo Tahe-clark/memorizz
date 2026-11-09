@@ -46,10 +46,17 @@ export default function Home({ onPlay }) {
                     {GAMES.map((game) => {
                         if (!game.available) {
                             return (
-                                <div key={game.id} className={`game-card is-soon color-${game.color}`}>
-                                    <h3 className="game-name">{game.name}</h3>
-                                    <span className="tag">{t('home.soon')}</span>
-                                </div>
+                                <article key={game.id} className="game-card is-next">
+                                    <div className="next-top">
+                                        <span className="next-icon" aria-hidden="true">🛠️</span>
+                                        <span className="next-tag">{t('home.next.tag')}</span>
+                                    </div>
+                                    <h3 className="game-name">{t('home.next.title')}</h3>
+                                    <p className="game-desc">{t('home.next.desc')}</p>
+                                    <div className="next-progress" role="progressbar" aria-label={t('home.next.tag')} aria-valuetext={t('home.next.tag')}>
+                                        <span />
+                                    </div>
+                                </article>
                             );
                         }
                         const best = readStorage(`best:${game.id}`);

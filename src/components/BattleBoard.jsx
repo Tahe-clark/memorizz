@@ -134,8 +134,10 @@ export default function BattleBoard({ config, players, onMatchFinished, onQuit }
                 {phase === 'memorize' && <div key={`r${battle.round}`} className="announce">{roundCall(battle.round, battle.decider)}</div>}
                 {phase === 'fight' && battle.questionId === 0 && <div key={`f${battle.round}`} className="announce is-fight">Fight!</div>}
                 {phase === 'duel' && <div key={`d${battle.round}`} className="announce is-fight">Draw!</div>}
-                {stage === 'charge' && <div key="fin" className="announce is-super">Final blow!</div>}
-                {phase === 'ko' && stage !== 'charge' && <div key={`k${battle.round}`} className="announce is-ko">{duel ? 'Bang!' : 'K.O.!'}</div>}
+                {/* Coup final façon anime : le cri pendant la charge, puis le nom du coup */}
+                {stage === 'charge' && <div key="fin" className={`announce is-super fin-${battle.finisherMove}`}>{t(`fin.${battle.finisherMove}.charge`)}</div>}
+                {stage === 'blast' && <div key="fin-blast" className={`announce is-blast fin-${battle.finisherMove}`}>{t(`fin.${battle.finisherMove}.blast`)}</div>}
+                {phase === 'ko' && stage !== 'charge' && stage !== 'blast' && <div key={`k${battle.round}`} className="announce is-ko">{duel ? 'Bang!' : 'K.O.!'}</div>}
                 {phase === 'ko' && (!stage || stage === 'done') && <Confetti key={battle.round} count={50} />}
             </div>
 

@@ -346,7 +346,8 @@ export default function Escape3D({ house, player, monster, calcs, phase, near, h
             const bu = beast.userData;
             bm.amount = THREE.MathUtils.damp(bm.amount, bm.moving ? 1 : 0, 6, dt);
             const toHero = Math.atan2(heroModel.position.x - beast.position.x, heroModel.position.z - beast.position.z);
-            bm.heading = turnToward(bm.heading, bm.moving ? Math.atan2(bm.dir.x, bm.dir.z) : toHero, bm.moving ? 9 : 3, dt);
+            // Au moment de la capture, il se tourne d'un coup vers sa proie
+            bm.heading = turnToward(bm.heading, bm.moving && !caught ? Math.atan2(bm.dir.x, bm.dir.z) : toHero, caught ? 20 : bm.moving ? 9 : 3, dt);
             beast.rotation.y = bm.heading;
             const s = bm.stride * 0.8;
             const lurch = bm.amount;
@@ -357,10 +358,12 @@ export default function Escape3D({ house, player, monster, calcs, phase, near, h
             bu.legs.forEach((leg, i) => dampTo(leg, 'x', Math.sin(s + i * Math.PI) * 0.55 * lurch, 12));
             bu.rig.position.y = Math.abs(Math.sin(s)) * 0.12 * lurch + Math.sin(t * 1.6) * 0.03;
             bu.rig.rotation.z = Math.sin(s) * 0.12 * lurch;
+            // Il bondit sur sa proie
+            bu.rig.position.z = THREE.MathUtils.damp(bu.rig.position.z, caught ? ease.out(span(pt, 0, 0.3)) * 0.55 : 0, 16, Math.min(dt, 0.05));
             dampTo(bu.torso, 'x', 0.38 + lurch * 0.18 + reach * 0.15 + Math.sin(t * 1.6) * 0.03);
             bu.arms.forEach(({ shoulder, elbow }, i) => {
                 const swing = Math.sin(s + i * Math.PI) * 0.5 * lurch;
-                const spread = st.phase === 'reveal' && pt > 1.5 && pt < 3;
+                const spread = (st.phase === 'reveal' && pt > 1.5 && pt < 3) || (caught && pt > 0.25);
                 dampTo(shoulder, 'x', spread ? -2.4 : -reach * 1.35 + swing - 0.1, reach ? 10 : 6);
                 dampTo(shoulder, 'z', (i ? 1 : -1) * (spread ? 0.9 : 0.18 + Math.sin(t * 2 + i) * 0.05), 6);
                 dampTo(elbow, 'x', spread ? -0.2 : -0.35 - reach * 0.3 + Math.sin(t * 2.3 + i) * 0.08, 6);
@@ -378,7 +381,8 @@ export default function Escape3D({ house, player, monster, calcs, phase, near, h
                 strip.rotation.z = Math.sin(t * 2.1 + i) * 0.06;
             });
             bu.eyeMaterial.emissiveIntensity = 5 + Math.sin(t * 9) * 1.5 + (roar ? 4 : 0);
-            bu.glow.intensity = 1.1 + (roar ? 1.6 : 0) + Math.sin(t * 11) * 0.25;
+            bu.glow.intensity = 1.1 + (roar ? 1.6 : 0) + (caught ? 5 : 0) + Math.sin(t * 11) * 0.25;
+            bu.glow.distance = caught ? 4.5 : 1.6;
             const mist = bu.mist.geometry.attributes.position;
             bu.mist.userData.seeds.forEach((seed, i) => {
                 const a = seed.a + t * 0.25 * seed.s;
@@ -452,19 +456,27 @@ export default function Escape3D({ house, player, monster, calcs, phase, near, h
                 dist = distance * THREE.MathUtils.lerp(1.2, 1, r);
                 lambda = 7;
             }
-            const center = world.center;
+            let center = world.center;
             const target = new THREE.Vector3(
                 center.x + Math.sin(azimuth) * Math.cos(elevation) * dist,
                 Math.sin(elevation) * dist,
                 center.z + Math.cos(azimuth) * Math.cos(elevation) * dist,
             );
+            if (caught && pt > 0.1) {
+                // Capture en 3D : la caméra fonce sur le visage du monstre qui se jette sur toi
+                const head = bu.head.getWorldPosition(new THREE.Vector3());
+                const angle = toHero + 0.5; // face au monstre, légèrement de côté
+                target.set(head.x + Math.sin(angle) * 2.5, head.y + 0.45, head.z + Math.cos(angle) * 2.5);
+                center = head;
+                lambda = 9;
+            }
             camPos.x = THREE.MathUtils.damp(camPos.x, target.x, lambda, k);
             camPos.y = THREE.MathUtils.damp(camPos.y, target.y, lambda, k);
             camPos.z = THREE.MathUtils.damp(camPos.z, target.z, lambda, k);
             camLook.lerp(center, 1 - Math.exp(-lambda * k));
             camera.position.copy(camPos);
-            if ((st.near && st.phase === 'play') || (caught && pt < 0.6)) {
-                const shake = caught ? 0.12 : st.near === 1 ? 0.045 : 0.02;
+            if ((st.near && st.phase === 'play') || (caught && pt < 1.1)) {
+                const shake = caught ? 0.06 * (1 - pt / 1.1) + 0.015 : st.near === 1 ? 0.045 : 0.02;
                 camera.position.x += Math.sin(t * 47) * shake;
                 camera.position.y += Math.cos(t * 39) * shake;
             }

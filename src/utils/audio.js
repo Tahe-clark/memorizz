@@ -306,6 +306,28 @@ const SOUNDS = {
         noise(c, { freq: 180, filter: 'lowpass', duration: 0.9, volume: 0.5, attack: 0.002 });
         tone(c, { freq: 1800, to: 300, type: 'triangle', at: 0.05, duration: 0.5, volume: 0.08 });
     },
+    // Coups finaux façon anime
+    // Rayon d'énergie : souffle qui gronde et grésille
+    beam: (c) => {
+        noise(c, { freq: 400, to: 2600, q: 0.8, duration: 0.9, volume: 0.35, attack: 0.01 });
+        tone(c, { freq: 90, to: 60, type: 'sawtooth', duration: 0.9, volume: 0.18, attack: 0.01 });
+        tone(c, { freq: 880, to: 1320, type: 'square', duration: 0.8, volume: 0.03, attack: 0.02 });
+    },
+    // Bras élastique : « boïng » qui s'étire
+    stretch: (c) => {
+        tone(c, { freq: 90, to: 640, type: 'triangle', duration: 0.35, volume: 0.18, attack: 0.005 });
+        tone(c, { freq: 180, to: 1280, type: 'sine', at: 0.02, duration: 0.3, volume: 0.07 });
+    },
+    // Rafale : un petit coup sec (joué en boucle très vite)
+    jab: (c) => {
+        noise(c, { freq: 1400, q: 0.9, duration: 0.05, volume: 0.22, attack: 0.001 });
+        tone(c, { freq: 160, to: 70, duration: 0.07, volume: 0.18, attack: 0.001 });
+    },
+    // Sphère qui tourbillonne
+    swirl: (c) => {
+        [0, 0.12, 0.24, 0.36].forEach((at, i) => tone(c, { freq: 500 + i * 120, to: 1400 + i * 200, type: 'sine', at, duration: 0.2, volume: 0.05 }));
+        noise(c, { freq: 2000, to: 800, q: 4, duration: 0.6, volume: 0.1 });
+    },
     // Victoire du match : petit arpège joyeux
     win: (c) => {
         [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => bell(c, freq, i * 0.11, 0.08, i === 3 ? 0.9 : 0.3));

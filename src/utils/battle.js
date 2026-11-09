@@ -1,3 +1,8 @@
+// Les coups finaux, clins d'œil aux animes : rayon d'énergie (kame), bras élastique
+// (gum), rafale de poings (rafale), sphère tourbillonnante (rasen) et bombe d'énergie
+// géante (genki). Un est tiré au hasard pour chaque match.
+export const FINISHERS = ['kame', 'gum', 'rafale', 'rasen', 'genki'];
+
 // Traduit l'état du combat en classes d'animation pour un joueur (0 = gauche, 1 = droite).
 // Utilisé par les deux arènes (2D et 3D).
 export function fighterState(player, { phase, event, roundWinner, finisherStage }) {

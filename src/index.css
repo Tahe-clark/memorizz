@@ -2120,3 +2120,104 @@ body { background: #f7f6f1; }
 .arena-wrap.fin-charge .battle3d { animation: quake 0.09s linear infinite alternate; }
 .arena-wrap.fin-blast .battle3d { animation: quake-big 0.06s 0.26s linear 10 alternate; }
 @media (max-width: 720px) { .battle .battle3d { margin-bottom: 6px; } }
+
+/* Escape 3D : éclair rouge pendant que le monstre se jette sur le joueur (la scène fait le reste) */
+.esc-flash3d { position: absolute; inset: 0; z-index: 8; pointer-events: none; animation: esc-flash3d 2.4s ease-out both; }
+@keyframes esc-flash3d {
+    0% { background: rgba(255, 0, 0, 0); box-shadow: inset 0 0 0 rgba(0, 0, 0, 0); }
+    12% { background: rgba(255, 30, 30, 0.45); }
+    22% { background: rgba(120, 0, 0, 0.12); box-shadow: inset 0 0 120px 40px rgba(0, 0, 0, 0.9); }
+    100% { background: rgba(60, 0, 0, 0.25); box-shadow: inset 0 0 160px 60px rgba(0, 0, 0, 0.95); }
+}
+
+/* Coups finaux façon anime : cri de charge puis nom du coup, en gros et en couleur */
+.announce.is-super.fin-genki { font-size: clamp(1.2rem, 4.6vw, 2.4rem); }
+.announce.is-super.fin-rafale { animation: announce-super 1.9s ease-out forwards, quake 0.05s linear infinite alternate; }
+.announce.is-blast { top: 30%; font-size: clamp(2.6rem, 11vw, 5.4rem); color: #fff; animation: announce-blast 0.9s cubic-bezier(0.2, 1.6, 0.4, 1) both; }
+.announce.is-blast.fin-kame { color: #7fe3ff; text-shadow: 0 0 24px #2fb8ff, 0 6px 0 #000; }
+.announce.is-blast.fin-gum { color: #ffcf3a; text-shadow: 0 0 18px #ff5a2a, 0 6px 0 #000; }
+.announce.is-blast.fin-rafale { color: #ff5a8a; text-shadow: 0 0 20px #ff2a6a, 0 6px 0 #000; }
+.announce.is-blast.fin-rasen { color: #a9e8ff; text-shadow: 0 0 24px #4aa8ff, 0 6px 0 #000; }
+.announce.is-blast.fin-genki { color: #e9f6ff; text-shadow: 0 0 30px #6ad0ff, 0 6px 0 #000; }
+@keyframes announce-blast { 0% { opacity: 0; transform: scale(2.6); } 30% { opacity: 1; transform: scale(1); } 80% { opacity: 1; } 100% { opacity: 0; transform: scale(1.1); } }
+.arena-wrap.fin-blast:has(.battle3d)::after { animation: flash-soft 0.5s 0.05s ease-out both; }
+@keyframes flash-soft { 0% { opacity: 0; } 10% { opacity: 0.35; } 100% { opacity: 0; } }
+
+/* ==========================================================================
+   Réglages (v2) : sobre et aéré. Sections titrées, une ligne par réglage,
+   sélecteurs en pilule et compteurs compacts. Une seule couleur d'accent.
+   ========================================================================== */
+.cfg { display: flex; flex-direction: column; gap: 22px; margin-bottom: 22px; }
+.cfg-section-title { margin: 0 0 8px 4px; font-family: var(--font-body); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--soft); }
+.cfg-card { border: var(--border); border-radius: var(--radius-md); background: var(--paper); }
+.cfg-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 13px 16px; }
+.cfg-row + .cfg-row { border-top: 1px solid var(--line); }
+.cfg-label { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cfg-label > span { font-weight: 600; font-size: 0.95rem; color: var(--ink); }
+.cfg-label small { font-size: 0.8rem; color: var(--soft); line-height: 1.35; }
+.cfg-control { flex-shrink: 0; display: flex; justify-content: flex-end; }
+.cfg-inline { display: flex; align-items: center; gap: 8px; }
+
+/* Sélecteur en pilule */
+.seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: 999px; background: var(--mist); }
+.seg.is-wrap { flex-wrap: wrap; justify-content: flex-end; border-radius: 16px; }
+.seg-opt {
+    display: inline-flex; align-items: center; gap: 6px; padding: 6px 13px; border: 0; border-radius: 999px;
+    background: transparent; color: var(--soft); font: inherit; font-size: 0.88rem; font-weight: 600; white-space: nowrap; cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+.seg-opt:hover { color: var(--ink); }
+.seg-opt.is-active { background: var(--paper); color: var(--ink); box-shadow: 0 1px 2px rgba(35, 40, 56, 0.1), 0 2px 8px rgba(35, 40, 56, 0.08); }
+.seg-opt small { font-size: 0.75rem; font-weight: 500; color: var(--soft); }
+.seg-opt.is-active small { color: var(--accent-deep); }
+.seg-icon { display: inline-flex; font-size: 1rem; line-height: 1; }
+.seg-icon img { width: 22px; height: 22px; object-fit: contain; }
+.seg-chip { padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--soft); font: inherit; font-size: 0.85rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.seg-chip:hover { color: var(--ink); }
+.seg-chip.is-active { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-deep); }
+
+/* Compteur compact */
+.cfg .counter { gap: 0; padding: 3px; border-radius: 999px; background: var(--mist); }
+.cfg .counter button { width: 30px; height: 30px; display: grid; place-items: center; border: 0; border-radius: 50%; background: transparent; color: var(--ink); font-size: 0.75rem; cursor: pointer; }
+.cfg .counter button:hover:not(:disabled) { background: var(--paper); }
+.cfg .counter button:disabled { opacity: 0.3; cursor: not-allowed; }
+.cfg .counter-value { min-width: 2.6em; font-family: var(--font-body); font-size: 1rem; font-weight: 700; }
+.cfg .counter-value small { font-size: 0.75em; font-weight: 500; }
+
+/* Interrupteur */
+.toggle { position: relative; width: 44px; height: 26px; padding: 0; border: 0; border-radius: 999px; background: var(--line); cursor: pointer; transition: background 0.2s ease; }
+.toggle span { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2); transition: transform 0.2s ease; }
+.toggle.is-on { background: var(--accent); }
+.toggle.is-on span { transform: translateX(18px); }
+
+/* « Comment jouer ? » repliable (Escape) */
+.cfg-rules { margin: -6px 0 18px; font-size: 0.88rem; color: var(--soft); }
+.cfg-rules summary { cursor: pointer; font-weight: 600; color: var(--accent-deep); width: fit-content; }
+.cfg-rules p { margin: 8px 0 0; line-height: 1.5; }
+
+/* Onglets de Battle plus discrets */
+.cfg-panel .config-tabs { background: transparent; padding: 0; gap: 6px; border-bottom: 1px solid var(--line); border-radius: 0; margin-bottom: 20px; }
+.cfg-panel .config-tabs button { border-radius: 0; padding: 10px 6px; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.cfg-panel .config-tabs button.is-active { background: transparent; box-shadow: none; border-bottom-color: var(--accent); }
+.cfg-panel .player-row { gap: 12px; }
+
+@media (max-width: 600px) {
+    .cfg-row { flex-direction: column; align-items: stretch; gap: 10px; }
+    .cfg-control { justify-content: flex-start; }
+    .seg { display: flex; width: 100%; flex-wrap: wrap; border-radius: 16px; }
+    .seg-opt { flex: 1 1 auto; justify-content: center; padding: 7px 8px; gap: 4px; font-size: 0.85rem; }
+    .seg.is-wrap .seg-opt { flex: 1 1 40%; }
+}
+
+/* Carte « prochain jeu » : annonce d'un jeu en cours de développement */
+.game-card.is-next { border: 1.5px dashed var(--dashed); background: repeating-linear-gradient(135deg, transparent 0 14px, rgba(80, 86, 214, 0.035) 14px 28px), var(--paper); box-shadow: none; }
+.game-card.is-next .game-name { color: var(--ink); }
+.next-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.next-icon { font-size: 1.6rem; display: inline-block; animation: next-tinker 2.4s ease-in-out infinite; transform-origin: 60% 70%; }
+@keyframes next-tinker { 0%, 60%, 100% { transform: rotate(0); } 70% { transform: rotate(-14deg); } 80% { transform: rotate(10deg); } 90% { transform: rotate(-6deg); } }
+.next-tag { padding: 3px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-deep); font-size: 0.75rem; font-weight: 700; }
+.next-progress { margin-top: auto; height: 8px; border-radius: 999px; background: var(--mist); overflow: hidden; }
+.next-progress span { display: block; width: 62%; height: 100%; border-radius: inherit; background: repeating-linear-gradient(-45deg, var(--accent) 0 8px, #7a80ec 8px 16px); background-size: 22px 22px; animation: next-stripes 1s linear infinite; }
+@keyframes next-stripes { to { background-position: 22px 0; } }
+@media (prefers-reduced-motion: reduce) { .next-icon, .next-progress span { animation: none; } }
+@media (min-width: 768px) { .games-grid { grid-template-columns: repeat(2, 1fr); } }

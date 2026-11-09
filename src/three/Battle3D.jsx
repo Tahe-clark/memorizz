@@ -5,6 +5,7 @@ import { createEngine } from './engine';
 import { avatarModel, canvasTexture, dispose, dotTexture, mat, setMood, shadowy } from './models';
 import { applyPose, ease, guardPose, pulse, span, turnToward, walkPose } from './rig';
 import { cowboyLook, fighterMood, fighterState } from '../utils/battle';
+import { barragePose, createEnergy, finisherPose, HIT_AT, updateEnergy } from './finishers';
 
 // Battle en vraie 3D (Three.js) : le ring et ses projecteurs, le duel au Far West
 // au coucher du soleil, et le podium sous les confettis. Les personnages sont les
@@ -524,6 +525,11 @@ export default function Battle3D({ mode, battle = null, players, winner = 0, onF
             return { model, facing, key: '', since: 0, fired: new Set(), stars, aura, gloveScale: 1, flash: 0 };
         });
         worldRef.current = { fighters };
+        // Effets du coup final façon anime (boule d'énergie, rayon, sphère…)
+        const energy = mode === 'ring' ? createEnergy(group) : null;
+        const energyFired = new Set();
+        let stageKey = null;
+        let stageSince = 0;
 
         const camPos = new THREE.Vector3();
         let shake = 0;
@@ -545,6 +551,15 @@ export default function Battle3D({ mode, battle = null, players, winner = 0, onF
                 phaseSince = 0;
             }
             phaseSince += dt;
+            const stage = b?.finisherStage ?? null;
+            const move = b?.finisherMove ?? null;
+            if (stage !== stageKey) {
+                stageKey = stage;
+                stageSince = 0;
+                energyFired.clear();
+            }
+            stageSince += dt;
+            const anime = mode === 'ring' && move && (stage === 'charge' || stage === 'blast');
 
             fighters.forEach((f, p) => {
                 // Chaque nouvel état (ou nouvel événement) relance sa chorégraphie
@@ -572,7 +587,14 @@ export default function Battle3D({ mode, battle = null, players, winner = 0, onF
                 setMood(f.model, mood);
 
                 let result;
-                if (mode === 'ring') {
+                if (anime && p === b.roundWinner) {
+                    result = finisherPose(move, stage, stageSince, t, p);
+                } else if (anime && state.includes('is-blasted')) {
+                    // La victime ne s'envole qu'au moment où le coup la touche
+                    result = ringPose(state, f.since - HIT_AT[move], t, p, ps[p], true);
+                } else if (anime && move === 'rafale' && stageSince > 0.45) {
+                    result = { pose: barragePose(t), speed: 30 };
+                } else if (mode === 'ring') {
                     result = ringPose(state, f.since, t, p, ps[p], b.hp[p] <= 34);
                 } else if (mode === 'duel') {
                     result = duelPose(state, b.phase, f.since, t, p, b.phase === 'duelIntro' ? phaseSince : null);
@@ -606,7 +628,7 @@ export default function Battle3D({ mode, battle = null, players, winner = 0, onF
                 if (mode === 'ring') {
                     if (state.includes('is-hit')) impact(0.16);
                     if (state.includes('is-countered')) impact(0.61);
-                    if (state.includes('is-blasted')) impact(0.02, true);
+                    if (state.includes('is-blasted') && !move) impact(0.02, true);
                 }
                 f.flash = Math.max(0, f.flash - dt * 4);
                 f.model.userData.body.material.emissive.setRGB(f.flash * 0.9, f.flash * 0.1, f.flash * 0.1);
@@ -618,14 +640,16 @@ export default function Battle3D({ mode, battle = null, players, winner = 0, onF
                     star.position.set(head.x + Math.cos(a) * 0.4, head.y + 0.25 + Math.sin(a * 2) * 0.05, head.z + Math.sin(a) * 0.4);
                 });
                 const charging = state.includes('is-charging');
-                f.aura.material.opacity = THREE.MathUtils.damp(f.aura.material.opacity, charging ? 0.35 + Math.sin(t * 20) * 0.1 : 0, 8, k);
+                // Colonne d'aura seulement pour l'ancien coup géant ; les coups d'anime ont leurs propres effets
+                f.aura.material.opacity = THREE.MathUtils.damp(f.aura.material.opacity, charging && !move ? 0.35 + Math.sin(t * 20) * 0.1 : 0, 8, k);
                 f.aura.rotation.y += dt * 4;
                 f.aura.scale.setScalar(1 + Math.sin(t * 12) * 0.05);
                 if (charging && Math.random() < dt * 14) {
                     fx.burst(f.model.localToWorld(new THREE.Vector3((Math.random() - 0.5) * 1.2, Math.random() * 1.8, (Math.random() - 0.5) * 0.8)), { color: new THREE.Color(ps[p].gloves), size: 0.35, life: 0.45, texture: dotTexture() });
                 }
                 const front = p === 0 ? 0 : 1;
-                f.gloveScale = THREE.MathUtils.damp(f.gloveScale, state.includes('is-megapunch') ? 2.6 : 1, 14, k);
+                f.gloveScale = THREE.MathUtils.damp(f.gloveScale, state.includes('is-megapunch') && !move ? 2.6 : 1, 14, k);
+                f.model.userData.arms[front].scale.set(1, 1, 1); // le bras élastique reprend sa taille
                 f.model.userData.arms[front].userData.glove.scale.set(f.gloveScale, f.gloveScale * 1.1, f.gloveScale * 0.95);
 
                 // Duel : coup de feu (flash, lumière, fumée, trajectoire)
@@ -641,6 +665,18 @@ export default function Battle3D({ mode, battle = null, players, winner = 0, onF
                     shake = 0.12;
                 }
             });
+
+            if (energy) {
+                const w0 = b?.roundWinner ?? 0;
+                updateEnergy(energy, {
+                    move: anime ? move : null, stage, s: stageSince, t, dt, fx, fired: energyFired, p: w0,
+                    winner: fighters[w0].model, loser: fighters[1 - w0].model,
+                    kick: (force) => {
+                        shake = Math.max(shake, force);
+                        if (force >= 0.25) fighters[1 - w0].flash = 1;
+                    },
+                });
+            }
 
             // Animations du décor
             if (mode === 'ring') {
@@ -678,10 +714,11 @@ export default function Battle3D({ mode, battle = null, players, winner = 0, onF
             let pos;
             let look;
             if (mode === 'ring') {
-                const charge = b?.finisherStage === 'charge' ? 1 : 0;
+                const charge = b?.finisherStage === 'charge' && b.finisherMove !== 'genki' ? 1 : 0;
+                const genki = b?.finisherMove === 'genki' && (b.finisherStage === 'charge' || b.finisherStage === 'blast') ? 1 : 0;
                 const sway = Math.sin(t * 0.3) * 0.18;
-                pos = new THREE.Vector3(Math.sin(sway) * 6.6 + (charge ? (b.roundWinner === 0 ? -0.8 : 0.8) : 0), 2.35 - charge * 0.3, Math.cos(sway) * 6.6 - charge * 1.2);
-                look = new THREE.Vector3(charge ? (b.roundWinner === 0 ? -0.5 : 0.5) : 0, 1.0, 0);
+                pos = new THREE.Vector3(Math.sin(sway) * 6.6 + (charge ? (b.roundWinner === 0 ? -0.8 : 0.8) : 0), 2.35 - charge * 0.3 + genki * 0.9, Math.cos(sway) * 6.6 - charge * 1.2 + genki * 1.2);
+                look = new THREE.Vector3(charge ? (b.roundWinner === 0 ? -0.5 : 0.5) : 0, 1.0 + genki * 0.9, 0);
             } else if (mode === 'duel') {
                 const tense = b && (b.phase === 'duel' || b.phase === 'duelPeek') ? 1 : 0;
                 pos = new THREE.Vector3(Math.sin(t * 0.2) * 0.3, 1.5 - tense * 0.2, 8.2 - tense * 1.1);

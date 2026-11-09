@@ -27,6 +27,17 @@ export const VOICE_LINES = {
     draw: 'Draw!',
     winner: 'We have a winner!',
     finisher: 'Final blow!',
+    // Coups finaux façon anime : le cri de préparation, puis celui du coup
+    'kame-charge': 'Kame... hame...',
+    'kame-blast': 'MEMO!',
+    'gum-charge': 'Gum Gum...',
+    'gum-blast': 'PISTOL!',
+    'rafale-charge': 'Ora ora ora ora ora ora!',
+    'rafale-blast': 'ORAAA!',
+    'rasen-charge': 'Rasen...',
+    'rasen-blast': 'MEMORIZZ!',
+    'genki-charge': 'Lend me your energy!',
+    'genki-blast': 'Genki MEMO!',
     adios: 'Adios muchachos!',
 };
 

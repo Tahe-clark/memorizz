@@ -268,7 +268,9 @@ export default function EscapeBoard({ config, player, onFinished, onQuit }) {
                 )}
                 <div className="esc-dust" aria-hidden="true">{Array.from({ length: 14 }, (_, i) => <i key={i} style={{ '--i': i }} />)}</div>
                 <div className="esc-vignette" />
-                {phase === 'caught' && (
+                {/* En 3D, la capture est jouée dans la scène (le monstre se jette sur toi) : ici juste un éclair rouge */}
+                {phase === 'caught' && realThree && <div className="esc-flash3d" aria-hidden="true" />}
+                {phase === 'caught' && !realThree && (
                     <div className="esc-scare">
                         <Monster />
                     </div>

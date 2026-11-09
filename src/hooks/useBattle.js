@@ -1,6 +1,7 @@
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { THEMES } from '../data/themes';
 import { announce, roundVoice } from '../utils/announcer';
+import { FINISHERS } from '../utils/battle';
 import { playSound } from '../utils/audio';
 import { BEAT_MS, duckMusic, msToGrid, playTrack, setMusicMood, stopTrack } from '../utils/music';
 import { createEquation, createSequence, LEVELS } from '../utils/wordswap';
@@ -360,20 +361,35 @@ export function useBattle({ theme, level, sequenceLength, emojis, rounds = 3, du
     // --- Coup final de la dernière manche ---
     // Trois temps : le gagnant se charge ('charge'), donne un coup géant ('blast'),
     // puis fête sa victoire ('done').
+    // Le coup est un clin d'œil à un anime, tiré au hasard (FINISHERS).
     const finisher = state.finisher && phase === 'ko';
     const [stage, setStage] = useState('charge');
+    // (Pour tester un coup précis : ajouter ?finisher=kame, gum, rafale, rasen ou genki à l'adresse.)
+    const [forced] = useState(() => FINISHERS.indexOf(new URLSearchParams(window.location.search).get('finisher')));
+    const [moveSeed] = useState(() => Math.floor(Math.random() * FINISHERS.length));
+    const finisherMove = forced >= 0 ? FINISHERS[forced] : FINISHERS[(moveSeed + round) % FINISHERS.length];
     useEffect(() => {
         if (!finisher) return undefined;
         playSound('charge');
-        announce('finisher');
-        const timers = [
+        announce(`${finisherMove}-charge`);
+        const timers = [];
+        if (finisherMove === 'rafale') {
+            // La rafale de poings commence dès la charge
+            for (let at = 450; at < FINISHER_CHARGE; at += 85) timers.push(setTimeout(() => playSound('jab'), at));
+        }
+        if (finisherMove === 'gum') timers.push(setTimeout(() => playSound('stretch'), 300));
+        if (finisherMove === 'rasen') timers.push(setTimeout(() => playSound('swirl'), 500));
+        timers.push(
             setTimeout(() => {
                 setStage('blast');
-                playSound('megaPunch');
+                announce(`${finisherMove}-blast`);
+                playSound({ kame: 'beam', genki: 'beam', gum: 'stretch' }[finisherMove] ?? 'megaPunch');
+                if (finisherMove === 'kame' || finisherMove === 'genki' || finisherMove === 'gum') timers.push(setTimeout(() => playSound('megaPunch'), 160));
             }, FINISHER_CHARGE),
             setTimeout(() => setStage('done'), FINISHER_CHARGE + FINISHER_BLAST),
-        ];
+        );
         return () => timers.forEach(clearTimeout);
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- un coup par fin de match
     }, [finisher]);
     const finisherStage = finisher ? stage : null;
 
@@ -451,6 +467,7 @@ export function useBattle({ theme, level, sequenceLength, emojis, rounds = 3, du
         equationSeconds: (EQUATION_BEATS * BEAT_MS) / 1000,
         pending: activePending,
         finisherStage,
+        finisherMove: finisher ? finisherMove : null,
         cactusVisible,
         grabCactus,
         ready,
