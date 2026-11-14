@@ -21,7 +21,7 @@ export default function LoginModal({ onClose }) {
                 aria-labelledby="login-title"
                 onClick={(e) => e.stopPropagation()}
             >
-                <span className="modal-icon" aria-hidden="true">🐣</span>
+                <span className="modal-icon" aria-hidden="true"><i className="fa-solid fa-circle-user"></i></span>
                 <h2 id="login-title" className="h-section">{t('modal.title')}</h2>
                 <p className="text-soft">{t('modal.body')}</p>
                 <button ref={buttonRef} type="button" className="btn-mz btn-mz-ink w-100" onClick={onClose}>

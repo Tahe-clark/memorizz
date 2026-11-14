@@ -10,6 +10,7 @@ import GameConfig from './components/GameConfig';
 import GameOver from './components/GameOver';
 import Header from './components/Header';
 import Home from './components/Home';
+import Locker from './components/Locker';
 import LoginModal from './components/LoginModal';
 import { DEFAULT_PLAYERS, normalizePlayer } from './data/avatars';
 import { GAMES } from './data/games';
@@ -20,13 +21,17 @@ import { setMusicMood, startMusic } from './utils/music';
 import { readStorage, writeStorage } from './utils/storage';
 import { computeScore } from './utils/wordswap';
 
-const DEFAULT_CONFIG = { theme: 'animals', level: 'easy', sequenceLength: 7, emojis: 2, rounds: 3 };
-const DEFAULT_BATTLE_CONFIG = { theme: 'animals', level: 'medium', sequenceLength: 5, emojis: 2, rounds: 3, view: '2d', duel: true, cpu: null, players: DEFAULT_PLAYERS };
-
-const DEFAULT_ESCAPE_CONFIG = { level: 'easy', sequenceLength: 7, emojis: 2, theme: 'animals', size: 'small', monster: 'normal', rounds: 3, view: '2d' };
+// Réglages par défaut : les plus faciles pour tous les jeux.
+const DEFAULT_CONFIG = { theme: 'animals', level: 'easy', sequenceLength: 5, emojis: 1, rounds: 3 };
+const DEFAULT_BATTLE_CONFIG = { theme: 'animals', level: 'easy', sequenceLength: 5, emojis: 1, rounds: 3, duel: true, cpu: null, players: DEFAULT_PLAYERS };
+const DEFAULT_ESCAPE_CONFIG = { level: 'easy', sequenceLength: 5, emojis: 1, theme: 'animals', size: 'small', monster: 'slow', rounds: 3 };
+// Quand les réglages par défaut changent, on augmente ce numéro : les anciens
+// réglages enregistrés sont oubliés une fois (le personnage, lui, est gardé).
+const CONFIG_VERSION = 2;
 
 const loadConfig = (gameId) => {
-    const saved = readStorage(`${gameId}:config`, {});
+    let saved = readStorage(`${gameId}:config`, {});
+    if (saved.version !== CONFIG_VERSION) saved = { players: saved.players, names: saved.names };
     if (gameId === 'escape') return { ...DEFAULT_ESCAPE_CONFIG, ...saved };
     if (gameId !== 'battle') return { ...DEFAULT_CONFIG, ...saved };
     const config = { ...DEFAULT_BATTLE_CONFIG, ...saved };
@@ -44,6 +49,14 @@ export default function App() {
     const [result, setResult] = useState(null);
     const [gameKey, setGameKey] = useState(0); // force une nouvelle partie à chaque lancement
     const [showLogin, setShowLogin] = useState(false);
+    // Le skin du joueur (accueil, joueur 1 de Battle, aventurier d'Escape)
+    const [hero, setHero] = useState(() => loadConfig('battle').players[0]);
+    const changeHero = (player) => {
+        setHero(player);
+        const saved = readStorage('battle:config', {});
+        const others = saved.players ?? [];
+        writeStorage('battle:config', { ...saved, players: [player, others[1] ?? DEFAULT_PLAYERS[1]], version: saved.version ?? CONFIG_VERSION });
+    };
 
     // La musique ne peut démarrer qu'après une première action de l'utilisateur.
     useEffect(() => {
@@ -62,7 +75,10 @@ export default function App() {
     }, [view, gameId]);
 
     const game = GAMES.find((g) => g.id === gameId);
-    const goHome = () => setView('home');
+    const goHome = () => {
+        setHero(loadConfig('battle').players[0]); // le skin a pu changer dans les réglages de Battle
+        setView('home');
+    };
 
     const openGame = (id) => {
         setGameId(id);
@@ -72,7 +88,7 @@ export default function App() {
 
     const startGame = (gameConfig) => {
         setConfig(gameConfig);
-        writeStorage(`${gameId}:config`, gameConfig);
+        writeStorage(`${gameId}:config`, { ...gameConfig, version: CONFIG_VERSION });
         setGameKey((k) => k + 1);
         setView('play');
     };
@@ -114,7 +130,7 @@ export default function App() {
     const isBattle = gameId === 'battle';
     const isEscape = gameId === 'escape';
     // L'aventurier d'Escape reprend l'avatar du joueur 1 de Battle.
-    const escapePlayer = normalizePlayer(readStorage('battle:config', {}).players?.[0], 0);
+    const escapePlayer = normalizePlayer(hero, 0);
 
     return (
         <div className="app">
@@ -123,10 +139,12 @@ export default function App() {
                 <span className="bg-blob blob-1" /><span className="bg-blob blob-2" /><span className="bg-blob blob-3" />
                 {Array.from({ length: 9 }, (_, i) => <span key={i} className="bg-mini" style={{ '--i': i }} />)}
             </div>
-            <Header onHome={goHome} onOpenLogin={() => setShowLogin(true)} />
+            <Header onHome={goHome} onOpenLogin={() => setShowLogin(true)} onOpenLocker={() => setView('locker')} overlay={view === 'home'} current={view} />
 
-            <main className="container main-area">
-                {view === 'home' && <Home onPlay={openGame} />}
+            {/* L'accueil est plein écran (image de fond sous l'en-tête) ; les autres pages sont centrées */}
+            {view === 'home' && <Home onPlay={openGame} player={hero} onOpenLocker={() => setView('locker')} />}
+            {view === 'locker' && <Locker key={JSON.stringify(hero)} player={hero} onSave={changeHero} onBack={goHome} />}
+            {view !== 'home' && view !== 'locker' && <main className="container main-area">
 
                 {view === 'config' && isEscape && (
                     <EscapeConfig key={gameId} game={game} initialConfig={config} onStart={startGame} onBack={goHome} />
@@ -160,13 +178,12 @@ export default function App() {
                     <BattleOver
                         result={result}
                         players={players}
-                        view={config.view}
                         onRematch={() => startGame(config)}
                         onSettings={() => setView('config')}
                         onHome={goHome}
                     />
                 )}
-            </main>
+            </main>}
 
             <Footer />
 

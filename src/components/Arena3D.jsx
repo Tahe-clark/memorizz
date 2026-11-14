@@ -47,7 +47,7 @@ function Fighter3D({ player, state, mood, level, gun = false }) {
                     </>
                 )}
             </div>
-            <div className="f3-impact">💥</div>
+            <div className="f3-impact"><svg viewBox="0 0 100 100" aria-hidden="true"><polygon points="50,2 61,32 95,22 70,48 98,70 62,68 54,98 42,70 8,86 30,56 2,34 36,34" fill="#ffd23f" stroke="#000" strokeWidth="5" strokeLinejoin="round" /></svg></div>
         </div>
     );
 }

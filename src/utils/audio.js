@@ -306,6 +306,11 @@ const SOUNDS = {
         noise(c, { freq: 180, filter: 'lowpass', duration: 0.9, volume: 0.5, attack: 0.002 });
         tone(c, { freq: 1800, to: 300, type: 'triangle', at: 0.05, duration: 0.5, volume: 0.08 });
     },
+    // Carte distribuée pendant la mémorisation : petit claquement de carte
+    deal: (c) => {
+        noise(c, { freq: 2600, to: 1400, q: 1.2, duration: 0.05, volume: 0.12, attack: 0.002 });
+        tone(c, { freq: 520, to: 380, type: 'triangle', duration: 0.06, volume: 0.05, attack: 0.002 });
+    },
     // Coups finaux façon anime
     // Rayon d'énergie : souffle qui gronde et grésille
     beam: (c) => {

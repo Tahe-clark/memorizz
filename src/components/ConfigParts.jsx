@@ -1,12 +1,16 @@
+import { LEVEL_ICONS } from '../data/icons';
 import { THEMES } from '../data/themes';
 import { useI18n } from '../i18n/context';
 import { LEVELS, MAX_LENGTH, MIN_LENGTH } from '../utils/wordswap';
 
-// Briques de l'écran des réglages, communes aux trois jeux : des sections sobres,
-// une ligne par réglage (le nom à gauche, le contrôle à droite), des sélecteurs
-// en « pilule » et des compteurs compacts. Peu de cadres, peu de couleurs.
+// Briques de l'écran « Préparer la partie », communes aux trois jeux.
+// Style sombre et chic : des tuiles à choisir (avec icône ou petite illustration),
+// des compteurs nets, un aperçu en direct de la séquence, et à droite une fiche
+// du jeu avec le résumé des réglages et le bouton pour lancer la partie.
 
-/** Petit compteur « − valeur + ». */
+const ART = `${import.meta.env.BASE_URL}art/`;
+
+/** Compteur « − valeur + ». */
 export function Counter({ value, min, max, onChange, label, muted = false, suffix = null }) {
     const { t } = useI18n();
     return (
@@ -25,15 +29,20 @@ export function Counter({ value, min, max, onChange, label, muted = false, suffi
     );
 }
 
-/** Sélecteur en pilule : une seule option active. options = [{ id, label, sub?, icon? }] */
-export function Segmented({ label, value, options, onChange, wrap = false }) {
+/**
+ * Tuiles à choisir (une seule active).
+ * options = [{ id, label, sub?, icon? (classe Font Awesome), art? (élément) }]
+ */
+export function Segmented({ label, value, options, onChange, compact = false }) {
     return (
-        <div className={`seg ${wrap ? 'is-wrap' : ''}`} role="radiogroup" aria-label={label}>
+        <div className={`seg ${compact ? 'is-compact' : ''}`} role="radiogroup" aria-label={label} data-n={options.length} style={{ '--n': options.length }}>
             {options.map((o) => (
                 <button key={String(o.id)} type="button" role="radio" aria-checked={value === o.id} className={`seg-opt ${value === o.id ? 'is-active' : ''}`} onClick={() => onChange(o.id)}>
-                    {o.icon && <span className="seg-icon" aria-hidden="true">{o.icon}</span>}
-                    <span>{o.label}</span>
+                    {o.art && <span className="seg-art" aria-hidden="true">{o.art}</span>}
+                    {o.icon && !o.art && <span className="seg-icon" aria-hidden="true">{typeof o.icon === 'string' ? <i className={`fa-solid ${o.icon}`}></i> : o.icon}</span>}
+                    <span className="seg-label">{o.label}</span>
                     {o.sub && <small>{o.sub}</small>}
+                    <span className="seg-check" aria-hidden="true"><i className="fa-solid fa-check"></i></span>
                 </button>
             ))}
         </div>
@@ -49,7 +58,7 @@ export function Toggle({ label, checked, onChange }) {
     );
 }
 
-/** Une ligne de réglage : nom (et aide) à gauche, contrôle à droite. */
+/** Un réglage : nom (et aide), puis le contrôle (à droite, ou dessous avec « stack »). */
 export function Row({ label, hint, children, stack = false }) {
     return (
         <div className={`cfg-row ${stack ? 'is-stack' : ''}`}>
@@ -63,18 +72,43 @@ export function Row({ label, hint, children, stack = false }) {
 }
 
 /** Un groupe de réglages avec son titre. */
-export function Section({ title, children }) {
+export function Section({ title, icon, children }) {
     return (
         <section className="cfg-section">
-            {title && <h2 className="cfg-section-title">{title}</h2>}
+            {title && <h2 className="cfg-section-title">{icon && <i className={`fa-solid ${icon}`} aria-hidden="true"></i>}{title}</h2>}
             <div className="cfg-card">{children}</div>
         </section>
     );
 }
 
+/** Trois mini-cartes du thème (les emojis restent sur des cartes). */
+function ThemeArt({ id }) {
+    return (
+        <span className="mini-cards">
+            {THEMES[id].items.slice(0, 3).map((item) => <span key={item} className="mini-card">{item}</span>)}
+        </span>
+    );
+}
+
+/** Aperçu en direct : la séquence telle qu'elle apparaîtra (longueur et nombre d'émojis). */
+function SequencePreview({ length, emojis, random, theme }) {
+    const items = THEMES[theme]?.items ?? THEMES.animals.items;
+    // Les émojis sont répartis régulièrement dans la séquence
+    const emojiAt = new Set(Array.from({ length: emojis }, (_, k) => Math.floor(((k + 0.5) * length) / emojis)));
+    return (
+        <div className="seq-preview" aria-hidden="true">
+            {Array.from({ length }, (_, i) => (
+                <span key={i} className={`seq-card ${emojiAt.has(i) && !random ? 'is-emoji' : ''} ${random ? 'is-random' : ''}`} style={{ '--i': i }}>
+                    {random ? '?' : emojiAt.has(i) ? items[i % items.length] : (i * 3 + 2) % 10}
+                </span>
+            ))}
+        </div>
+    );
+}
+
 /**
  * Les réglages de la séquence à mémoriser (WordSwap Calc), partagés par les trois jeux :
- * temps, longueur, nombre d'émojis (ou au hasard) et thème.
+ * temps, longueur, nombre d'émojis (ou au hasard) et thème, avec l'aperçu en direct.
  */
 export function SequenceSettings({ level, setLevel, sequenceLength, setSequenceLength, emojis, setEmojis, lastEmojis, setLastEmojis, theme, setTheme }) {
     const { t } = useI18n();
@@ -88,34 +122,96 @@ export function SequenceSettings({ level, setLevel, sequenceLength, setSequenceL
     if (isRandom) emojiHint = t('config.emojisRandom', { n: sequenceLength });
     else if (emojiCount === sequenceLength) emojiHint = t('config.emojisAll');
     return (
-        <Section title={t('config.section.sequence')}>
-            <Row label={t('config.step1')}>
+        <Section title={t('config.section.sequence')} icon="fa-brain">
+            <SequencePreview length={sequenceLength} emojis={emojiCount} random={isRandom} theme={theme} />
+            <Row label={t('config.step1')} stack>
                 <Segmented
                     label={t('config.step1')}
                     value={level}
                     onChange={setLevel}
-                    options={Object.entries(LEVELS).map(([id, { seconds }]) => ({ id, label: t(`level.${id}`), sub: `${seconds} s` }))}
+                    options={Object.entries(LEVELS).map(([id, { seconds }]) => ({ id, icon: LEVEL_ICONS[id], label: t(`level.${id}`), sub: `${seconds} s` }))}
                 />
             </Row>
-            <Row label={t('config.step2')} hint={t('config.step2Hint')}>
-                <Counter value={sequenceLength} min={MIN_LENGTH} max={MAX_LENGTH} onChange={setSequenceLength} label={t('config.step2')} />
-            </Row>
-            <Row label={t('config.emojis')} hint={emojiHint}>
-                <div className="cfg-inline">
-                    <Counter value={emojiCount} min={1} max={sequenceLength} onChange={pick} label={t('config.emojis')} muted={isRandom} suffix={`/${sequenceLength}`} />
-                    <button type="button" className={`seg-chip ${isRandom ? 'is-active' : ''}`} aria-pressed={isRandom} onClick={() => setEmojis(isRandom ? lastEmojis : 'random')}>
-                        🎲 {t('config.random')}
-                    </button>
-                </div>
-            </Row>
-            <Row label={t('config.step3')}>
+            <div className="cfg-pair">
+                <Row label={t('config.step2')} hint={t('config.step2Hint')} stack>
+                    <Counter value={sequenceLength} min={MIN_LENGTH} max={MAX_LENGTH} onChange={setSequenceLength} label={t('config.step2')} />
+                </Row>
+                <Row label={t('config.emojis')} hint={emojiHint} stack>
+                    <div className="cfg-inline">
+                        <Counter value={emojiCount} min={1} max={sequenceLength} onChange={pick} label={t('config.emojis')} muted={isRandom} suffix={`/${sequenceLength}`} />
+                        <button type="button" className={`seg-chip ${isRandom ? 'is-active' : ''}`} aria-pressed={isRandom} onClick={() => setEmojis(isRandom ? lastEmojis : 'random')}>
+                            <i className="fa-solid fa-dice" aria-hidden="true"></i> {t('config.random')}
+                        </button>
+                    </div>
+                </Row>
+            </div>
+            <Row label={t('config.step3')} stack>
                 <Segmented
                     label={t('config.step3')}
                     value={theme}
                     onChange={setTheme}
-                    options={Object.entries(THEMES).map(([id, data]) => ({ id, icon: data.items[0], label: t(`theme.${id}`) }))}
+                    options={Object.keys(THEMES).map((id) => ({ id, art: <ThemeArt id={id} />, label: t(`theme.${id}`) }))}
                 />
             </Row>
         </Section>
+    );
+}
+
+/** Illustration de WordSwap Calc (quelques cartes, dont une retournée). */
+function WordSwapArt() {
+    return (
+        <div className="ws-art" aria-hidden="true">
+            <div className="ws-row">
+                {['3', '🦊', '?', '7'].map((item, i) => <span key={i} className={`ws-tile ${item === '?' ? 'is-hidden' : ''}`}>{item}</span>)}
+            </div>
+        </div>
+    );
+}
+
+/**
+ * Mise en page de l'écran des réglages : réglages à gauche, fiche du jeu à droite
+ * (image, résumé des choix, bouton « Lancer »). Sur téléphone, la fiche passe dessous.
+ */
+export function ConfigShell({ game, summary, startLabel, onStart, onBack, tabs = null, footer = null, intro = null, children }) {
+    const { t } = useI18n();
+    const art = { escape: 'escape-card.jpg', battle: 'battle-card.jpg' }[game.id];
+    return (
+        <div className="cfgx">
+            <div className="cfgx-main">
+                <div className="cfgx-head">
+                    <button type="button" className="icon-button" onClick={onBack} aria-label={t('config.back')} title={t('config.back')}>
+                        <i className="fa-solid fa-arrow-left" aria-hidden="true"></i>
+                    </button>
+                    <div>
+                        <p className="cfgx-kicker">{game.name}</p>
+                        <h1 className="cfgx-title">{t('config.title')}</h1>
+                    </div>
+                </div>
+                {intro}
+                {tabs}
+                <div className="cfg">{children}</div>
+                {footer}
+            </div>
+
+            <aside className="cfgx-aside">
+                <div className="cfgx-card">
+                    <div className="cfgx-art">{art ? <img src={ART + art} alt="" /> : <WordSwapArt />}</div>
+                    <div className="cfgx-card-body">
+                        <h2>{game.name}</h2>
+                        <dl className="cfgx-summary">
+                            {summary.map(([label, value]) => (
+                                <div key={label}>
+                                    <dt>{label}</dt>
+                                    <dd>{value}</dd>
+                                </div>
+                            ))}
+                        </dl>
+                        <button type="button" className="btn-go config-start" onClick={onStart}>
+                            <i className="fa-solid fa-play" aria-hidden="true"></i> {startLabel}
+                        </button>
+                    </div>
+                </div>
+            </aside>
+        </div>
     );
 }

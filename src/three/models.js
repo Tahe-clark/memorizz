@@ -126,6 +126,95 @@ function accessoryModel(kind, w, h, d) {
         band.position.y = 0.08;
         group.add(band);
         group.rotation.x = -0.12;
+    } else if (kind === 'headphones') {
+        const dark = mat(0x22252e, { r: 0.4 });
+        const band = new THREE.Mesh(new THREE.TorusGeometry(w * 0.5, 0.05, 10, 32, Math.PI), dark);
+        band.position.y = -0.05;
+        group.add(band);
+        [-1, 1].forEach((side) => {
+            const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.12, 20), mat(0xff4f86, { r: 0.35 }));
+            cup.rotation.z = Math.PI / 2;
+            cup.position.set(side * (w * 0.5 + 0.02), -0.12, 0);
+            group.add(cup);
+        });
+    } else if (kind === 'wizard') {
+        const cloth = mat(0x4b3be8, { r: 0.6 });
+        const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.04, 28), cloth);
+        group.add(brim);
+        const cone = new THREE.Mesh(new THREE.ConeGeometry(0.32, 0.85, 24), cloth);
+        cone.position.set(0, 0.44, -0.04);
+        cone.rotation.x = -0.18;
+        group.add(cone);
+        for (let i = 0; i < 4; i++) {
+            const star = new THREE.Mesh(new THREE.OctahedronGeometry(0.05), mat(0xffd23f, { e: 0x806010 }));
+            star.position.set(Math.sin(i * 1.7) * 0.2, 0.15 + i * 0.13, 0.22 - i * 0.05);
+            group.add(star);
+        }
+    } else if (kind === 'halo') {
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.04, 10, 36), mat(0xffe08a, { e: 0xffc21a, ei: 1.2, r: 0.3, m: 0.4 }));
+        ring.rotation.x = Math.PI / 2;
+        ring.position.y = 0.32;
+        ring.userData.float = true;
+        group.add(ring);
+    } else if (kind === 'horns') {
+        const red = mat(0xe5383b, { r: 0.45 });
+        [-1, 1].forEach((side) => {
+            const horn = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.32, 12), red);
+            horn.position.set(side * w * 0.3, 0.12, 0);
+            horn.rotation.z = -side * 0.35;
+            group.add(horn);
+        });
+    } else if (kind === 'headband') {
+        const red = mat(0xe5383b, { r: 0.6 });
+        const band = new THREE.Mesh(new RoundedBoxGeometry(w + 0.06, 0.13, d + 0.06, 2, 0.04), red);
+        band.position.y = -0.2;
+        group.add(band);
+        const plate = new THREE.Mesh(new RoundedBoxGeometry(0.3, 0.1, 0.03, 2, 0.02), mat(0xc7ccd8, { m: 0.8, r: 0.3 }));
+        plate.position.set(0, -0.2, d / 2 + 0.05);
+        group.add(plate);
+        [-0.15, 0.15].forEach((tilt) => {
+            const tail = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.4, 0.02), red);
+            tail.position.set(tilt * 0.6, -0.4, -d / 2 - 0.06);
+            tail.rotation.set(0.5, 0, tilt * 2);
+            group.add(tail);
+        });
+    } else if (kind === 'beanie') {
+        const knit = mat(0x2fd1c5, { r: 0.9 });
+        const dome = new THREE.Mesh(new THREE.SphereGeometry(0.38, 22, 14, 0, Math.PI * 2, 0, Math.PI / 2), knit);
+        dome.scale.set(w * 1.15, 0.85, d * 1.6);
+        dome.position.y = -0.06;
+        group.add(dome);
+        const fold = new THREE.Mesh(new THREE.CylinderGeometry(0.4 * w * 1.15, 0.4 * w * 1.15, 0.12, 24), mat(0x1fa89e, { r: 0.9 }));
+        fold.scale.z = (d * 1.6) / (w * 1.15);
+        fold.position.y = -0.04;
+        group.add(fold);
+        const pom = new THREE.Mesh(new THREE.SphereGeometry(0.1, 14, 10), mat(0xffffff, { r: 1 }));
+        pom.position.y = 0.3;
+        group.add(pom);
+    } else if (kind === 'party') {
+        const tex = canvasTexture(64, 64, (c, cw, ch) => {
+            for (let i = 0; i < 8; i++) {
+                c.fillStyle = i % 2 ? '#ffd23f' : '#ff4f86';
+                c.fillRect(0, (i * ch) / 8, cw, ch / 8);
+            }
+        });
+        const cone = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.55, 24), mat(0xffffff, { map: tex, r: 0.6 }));
+        cone.position.y = 0.27;
+        cone.rotation.z = 0.15;
+        group.add(cone);
+        const pom = new THREE.Mesh(new THREE.SphereGeometry(0.07, 12, 10), mat(0x46c8ff));
+        pom.position.set(-0.08, 0.56, 0);
+        group.add(pom);
+    } else if (kind === 'tophat') {
+        const black = mat(0x14151f, { r: 0.35 });
+        const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.46, 0.46, 0.04, 28), black);
+        group.add(brim);
+        const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.5, 24), black);
+        crown.position.y = 0.27;
+        group.add(crown);
+        const band = new THREE.Mesh(new THREE.CylinderGeometry(0.285, 0.285, 0.08, 24), mat(0xe5383b));
+        band.position.y = 0.08;
+        group.add(band);
     }
     group.position.y += h;
     if (kind === 'shades') {
@@ -162,6 +251,81 @@ function revolverModel() {
     gun.add(muzzle);
     gun.userData.muzzle = muzzle;
     return gun;
+}
+
+/** Objets portés dans le dos (casier) : katana, cape, ailes, jetpack, sac à dos. */
+function backModel(kind, w, h, d) {
+    const group = new THREE.Group();
+    group.position.set(0, h * 0.55, -d / 2 - 0.04);
+    if (kind === 'katana') {
+        const sword = new THREE.Group();
+        const blade = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1.15, 0.015), mat(0xe6ecf2, { m: 0.9, r: 0.18 }));
+        blade.position.y = 0.62;
+        sword.add(blade);
+        const guard = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.035, 16), mat(0xc9a227, { m: 0.8, r: 0.3 }));
+        guard.position.y = 0.04;
+        sword.add(guard);
+        const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.34, 10), mat(0x7a1f3d, { r: 0.7 }));
+        grip.position.y = -0.14;
+        sword.add(grip);
+        const sheath = new THREE.Mesh(new THREE.BoxGeometry(0.09, 1.0, 0.04), mat(0x14151f, { r: 0.4 }));
+        sheath.position.set(0, 0.6, -0.01);
+        sword.add(sheath);
+        sword.rotation.z = 0.75;
+        sword.position.set(-0.05, -0.15, -0.02);
+        group.add(sword);
+    } else if (kind === 'cape') {
+        const geometry = new THREE.PlaneGeometry(w * 1.05, h * 0.95 + 0.35, 6, 8);
+        const pos = geometry.attributes.position;
+        for (let i = 0; i < pos.count; i++) {
+            const y = pos.getY(i);
+            pos.setZ(i, -Math.pow((h * 0.5 - y) / (h + 0.4), 2) * 0.35 - Math.cos(pos.getX(i) * 3) * 0.04);
+        }
+        geometry.computeVertexNormals();
+        const cape = new THREE.Mesh(geometry, mat(0xe5383b, { r: 0.7, side: THREE.DoubleSide }));
+        cape.position.set(0, -h * 0.42, -0.02);
+        group.add(cape);
+        group.userData.cape = cape;
+    } else if (kind === 'wings') {
+        const white = mat(0xffffff, { r: 0.6 });
+        [-1, 1].forEach((side) => {
+            const wing = new THREE.Group();
+            for (let k = 0; k < 3; k++) {
+                const feather = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 12), white);
+                feather.scale.set(1.2 - k * 0.25, 0.32, 0.12);
+                feather.position.set(side * (0.25 + k * 0.08), 0.12 - k * 0.16, 0);
+                feather.rotation.z = side * (0.4 + k * 0.15);
+                wing.add(feather);
+            }
+            wing.position.x = side * 0.1;
+            wing.rotation.y = side * -0.35;
+            wing.userData.side = side;
+            group.add(wing);
+        });
+        group.userData.wings = group.children;
+    } else if (kind === 'jetpack') {
+        const steel = mat(0xc7ccd8, { m: 0.75, r: 0.3 });
+        [-1, 1].forEach((side) => {
+            const tank = new THREE.Mesh(new THREE.CapsuleGeometry(0.11, 0.45, 6, 14), steel);
+            tank.position.set(side * 0.15, 0, -0.08);
+            group.add(tank);
+            const flame = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.3, 12), mat(0xff9a3a, { e: 0xff6a1a, ei: 2, transparent: true, opacity: 0.9 }));
+            flame.rotation.x = Math.PI;
+            flame.position.set(side * 0.15, -0.45, -0.08);
+            group.add(flame);
+        });
+        const plate = new THREE.Mesh(new RoundedBoxGeometry(0.42, 0.4, 0.06, 2, 0.03), mat(0x2b2f3a));
+        plate.position.z = 0.02;
+        group.add(plate);
+    } else if (kind === 'backpack') {
+        const bag = new THREE.Mesh(new RoundedBoxGeometry(w * 0.7, h * 0.55, 0.28, 3, 0.08), mat(0x8b7bff, { r: 0.8 }));
+        bag.position.z = -0.12;
+        group.add(bag);
+        const pocket = new THREE.Mesh(new RoundedBoxGeometry(w * 0.5, h * 0.22, 0.08, 2, 0.04), mat(0x6b5ce0, { r: 0.8 }));
+        pocket.position.set(0, -h * 0.1, -0.29);
+        group.add(pocket);
+    }
+    return group;
 }
 
 /**
@@ -242,6 +406,7 @@ export function avatarModel(player, mood = 'angry', { accessory = player.accesso
         torso.add(handle);
     }
     if (accessory && accessory !== 'none') torso.add(accessoryModel(accessory, w, h, d));
+    if (player.back && player.back !== 'none') torso.add(backModel(player.back, w, h, d));
 
     // Bras : une épaule qui pivote, un bras et un gant au bout. Bras « 0 » à gauche (x < 0).
     const gloveMaterial = mat(player.gloves, { r: 0.35 });
@@ -568,4 +733,13 @@ export function labelSprite(text, { bg = '#fffaf0', fg = '#1b1420', border = '#0
     sprite.scale.set(width, width * 0.4, 1);
     sprite.renderOrder = 10;
     return sprite;
+}
+
+/** Petits mouvements des objets portés : auréole qui flotte, cape et ailes qui bougent. */
+export function animateGear(avatar, t) {
+    avatar.traverse((child) => {
+        if (child.userData.float) child.position.y = 0.32 + Math.sin(t * 2.4) * 0.04;
+        if (child.userData.cape) child.userData.cape.rotation.x = -0.12 - Math.sin(t * 1.8) * 0.06;
+        if (child.userData.wings) child.userData.wings.forEach((wing) => { wing.rotation.y = wing.userData.side * (-0.35 - Math.sin(t * 3) * 0.2); });
+    });
 }

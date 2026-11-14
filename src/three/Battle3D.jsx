@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { createEngine } from './engine';
 import { avatarModel, canvasTexture, dispose, dotTexture, mat, setMood, shadowy } from './models';
-import { applyPose, ease, guardPose, pulse, span, turnToward, walkPose } from './rig';
+import { applyPose, dancePose, ease, guardPose, pulse, span, turnToward, walkPose } from './rig';
 import { cowboyLook, fighterMood, fighterState } from '../utils/battle';
 import { barragePose, createEnergy, finisherPose, HIT_AT, updateEnergy } from './finishers';
 
@@ -377,19 +377,8 @@ function ringPose(state, since, t, p, player, hpLow) {
     return { pose, speed };
 }
 
-/** Célébration selon l'emote choisie par le joueur. */
-function celebrate(emote, x, base = {}) {
-    const hop = Math.abs(Math.sin(x * 6.5));
-    const up = { a0x: -2.9, a1x: -2.9, a0z: -0.35, a1z: 0.35 };
-    if (emote === 'spin') return { ...base, ...up, ry: x * 9, y: hop * 0.12, tx: 0, rx: 0, z: 0 };
-    if (emote === 'wiggle') return { ...base, ...up, rz: Math.sin(x * 14) * 0.25, tz: -Math.sin(x * 14) * 0.2, y: 0.02, rx: 0, z: 0 };
-    if (emote === 'pump') return { ...base, a0x: -0.3, a1x: -2.9 + Math.sin(x * 12) * 0.35, a1z: 0.2, y: hop * 0.08, rx: 0, z: 0 };
-    if (emote === 'flip') {
-        const cycle = (x % 1.3) / 1.3;
-        return { ...base, ...up, y: Math.sin(Math.min(1, cycle / 0.6) * Math.PI) * 0.9, rx: -ease.inOut(Math.min(1, cycle / 0.6)) * Math.PI * 2, z: 0 };
-    }
-    return { ...base, ...up, y: hop * 0.45, rx: 0, z: 0, l0x: -hop * 0.3, l1x: -hop * 0.3 };
-}
+/** Célébration selon l'emote choisie par le joueur (voir dancePose dans rig.js). */
+const celebrate = dancePose;
 
 /** Pose d'un cowboy pendant le duel. Le bras armé est celui côté caméra. */
 function duelPose(state, phase, since, t, p, intro) {
@@ -594,6 +583,12 @@ export default function Battle3D({ mode, battle = null, players, winner = 0, onF
                     result = ringPose(state, f.since - HIT_AT[move], t, p, ps[p], true);
                 } else if (anime && move === 'rafale' && stageSince > 0.45) {
                     result = { pose: barragePose(t), speed: 30 };
+                } else if (mode === 'ring' && b.phase === 'memorize') {
+                    // Pendant la mémorisation, les boxeurs réfléchissent (main sous le menton)
+                    const fr = p === 0 ? 0 : 1;
+                    const bk = 1 - fr;
+                    const sway = Math.sin(t * 1.6 + p * 2);
+                    result = { pose: { [`a${fr}x`]: -2.25, [`a${fr}z`]: fr === 0 ? 0.95 : -0.95, [`a${bk}x`]: -0.85, [`a${bk}z`]: bk === 0 ? 0.75 : -0.75, tz: 0.08 * sway, tx: 0.1, y: Math.abs(Math.sin(t * 2.2 + p)) * 0.02, ty: (p === 0 ? 1 : -1) * 0.25 }, speed: 8 };
                 } else if (mode === 'ring') {
                     result = ringPose(state, f.since, t, p, ps[p], b.hp[p] <= 34);
                 } else if (mode === 'duel') {

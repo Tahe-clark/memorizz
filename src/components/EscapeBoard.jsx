@@ -72,8 +72,9 @@ export default function EscapeBoard({ config, player, onFinished, onQuit }) {
     const presenting = phase === 'reveal' || phase === 'countdown';
     // Vue 3D en Three.js ; si le navigateur ne gère pas la 3D, on garde l'ancienne vue en perspective CSS.
     const [webglFailed, setWebglFailed] = useState(false);
-    const view = config.view === '3d' ? '3d' : '2d';
-    const realThree = view === '3d' && !webglFailed;
+    // Escape est toujours en 3D : vraie 3D (Three.js), ou 3D en CSS si le navigateur ne gère pas WebGL.
+    const view = '3d';
+    const realThree = !webglFailed;
     const walls = useWalls(house);
 
     // Distance du monstre (en portes) : à deux portes ou moins, la tension monte.

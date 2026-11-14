@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 import { useGame } from '../hooks/useGame';
 import { useI18n } from '../i18n/context';
+import { useMemoShow } from '../hooks/useMemoShow';
+import MemoTimer from './MemoTimer';
 import Tile from './Tile';
 
 export default function GameBoard({ config, onGameFinished, onQuit }) {
@@ -8,6 +10,8 @@ export default function GameBoard({ config, onGameFinished, onQuit }) {
     const game = useGame({ ...config, onGameFinished });
     const { phase, equation, feedback } = game;
     const solved = feedback === 'success';
+    const memorizing = phase === 'memorize';
+    const show = useMemoShow(memorizing, game.currentRound, game.sequence.length);
 
     // Raccourcis clavier : Entrée pour passer la mémorisation, 1 à 4 pour répondre.
     useEffect(() => {
@@ -26,7 +30,7 @@ export default function GameBoard({ config, onGameFinished, onQuit }) {
     const itemMark = <span className="eq-emoji">{equation.item}</span>;
 
     return (
-        <div className="panel panel-wide board">
+        <div className={`panel panel-wide board phase-${phase}`}>
             <div className="board-top">
                 <div className="round-info">
                     <span className="round-pips" aria-hidden="true">
@@ -45,13 +49,13 @@ export default function GameBoard({ config, onGameFinished, onQuit }) {
                 {phase === 'memorize' ? t('board.memorizeTitle') : t('board.solveTitle')}
             </h1>
 
-            <div className="sequence" key={game.currentRound}>
+            <div className={`sequence ${memorizing ? 'is-memorizing' : 'is-cascade'} ${memorizing && game.countdown <= 3 ? 'is-urgent' : ''}`} key={game.currentRound}>
                 {game.sequence.map((item, index) => (
                     <Tile
                         key={index}
                         item={item}
                         position={index + 1}
-                        hidden={phase === 'solve' && !(solved && index + 1 === equation.answerPosition)}
+                        hidden={(memorizing && index >= show.dealt) || (phase === 'solve' && !(solved && index + 1 === equation.answerPosition))}
                         highlight={solved && index + 1 === equation.answerPosition}
                         label={t('board.pos', { n: index + 1 })}
                         hiddenLabel={t('board.hidden', { n: index + 1 })}
@@ -61,16 +65,13 @@ export default function GameBoard({ config, onGameFinished, onQuit }) {
 
             {phase === 'memorize' ? (
                 <div className="memorize-foot">
-                    <p className="text-soft text-center mb-0">{t('board.memorizeSub')}</p>
-                    <div className="timer" role="timer" aria-live="off">
-                        <div className="timer-track">
-                            <div className="timer-fill" style={{ width: `${(game.countdown / game.seconds) * 100}%` }} />
-                        </div>
-                        <span className="timer-label">{t('board.timeLeft', { s: game.countdown })}</span>
+                    <p className="memo-hint"><i className="fa-regular fa-lightbulb" aria-hidden="true"></i> {t('board.memorizeSub')}</p>
+                    <div className="memo-row">
+                        <MemoTimer countdown={game.countdown} seconds={game.seconds} />
+                        <button type="button" className="btn-go btn-go-inline" onClick={game.skipMemorize}>
+                            <i className="fa-solid fa-check" aria-hidden="true"></i> {t('board.ready')}
+                        </button>
                     </div>
-                    <button type="button" className="btn-mz btn-mz-ink" onClick={game.skipMemorize}>
-                        {t('board.ready')}
-                    </button>
                 </div>
             ) : (
                 <div className="solve">

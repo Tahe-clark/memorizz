@@ -2,13 +2,13 @@ import { useEffect, useRef } from 'react';
 import { DUEL_PEEK, MAX_HP, roundsToWin, useBattle } from '../hooks/useBattle';
 import { useI18n } from '../i18n/context';
 import { roundCall } from '../utils/announcer';
-import Arena from './Arena';
 import Arena3D, { DuelScene3D } from './Arena3D';
 import BeatDots from './BeatDots';
 import Confetti from './Confetti';
 import DuelCinematic from './DuelCinematic';
-import DuelScene from './DuelScene';
 import Stage3D from './Stage3D';
+import { useMemoShow } from '../hooks/useMemoShow';
+import MemoTimer from './MemoTimer';
 import Tile from './Tile';
 
 // Touches de chaque joueur (positions physiques du clavier).
@@ -66,6 +66,8 @@ export default function BattleBoard({ config, players, onMatchFinished, onQuit }
         return () => window.removeEventListener('keydown', onKey);
     }, [phase, options, battle, cpu]);
 
+    const memorizing = phase === 'memorize';
+    const show = useMemoShow(memorizing, `${battle.round}-${battle.sequence.join('')}`, battle.sequence.length);
     const showQuestion = phase !== 'memorize' && phase !== 'duelIntro' && phase !== 'duelPeek';
     let status = t('battle.fight');
     if (stage === 'charge') status = t('battle.finisher', { name: names[battle.roundWinner] });
@@ -94,7 +96,7 @@ export default function BattleBoard({ config, players, onMatchFinished, onQuit }
                         {Array.from({ length: Math.max(totalRounds, battle.round) }, (_, i) => {
                             const winner = battle.roundResults[i];
                             if (winner !== undefined) return <span key={i} className={`pip won-${winner}`} />;
-                            if (i === battle.round - 1) return <span key={i} className="pip-fire">🔥</span>;
+                            if (i === battle.round - 1) return <span key={i} className="pip-fire"><i className="fa-solid fa-fire" aria-hidden="true"></i></span>;
                             return <span key={i} className="pip" />;
                         })}
                     </span>
@@ -107,13 +109,10 @@ export default function BattleBoard({ config, players, onMatchFinished, onQuit }
             </div>
 
             <div className={`arena-wrap ${duel ? 'is-duel' : ''} ${stage ? `fin-${stage}` : ''}`}>
-                {duel && config.view === '3d' && <Stage3D mode="duel" battle={battle} players={players} fallback={<DuelScene3D battle={battle} players={players} />} />}
-                {duel && config.view !== '3d' && <DuelScene battle={battle} players={players} />}
+                {duel && <Stage3D mode="duel" battle={battle} players={players} fallback={<DuelScene3D battle={battle} players={players} />} />}
                 {phase === 'duelIntro' && <DuelCinematic key={`cine${battle.round}`} players={players} title={t('duel.title')} subtitle={t('duel.subtitle')} />}
                 {battle.taunt !== null && <div className={`taunt taunt-${battle.taunt}`}>Adios muchachos !</div>}
-                {!duel && (config.view === '3d'
-                    ? <Stage3D mode="ring" battle={battle} players={players} fallback={<Arena3D battle={battle} players={players} />} />
-                    : <Arena battle={battle} players={players} />)}
+                {!duel && <Stage3D mode="ring" battle={battle} players={players} fallback={<Arena3D battle={battle} players={players} />} />}
                 {/* La boule de cactus : un clic (ou Espace) lance le duel au Far West */}
                 {battle.cactusVisible && (
                     <button type="button" className="cactus-ball" onClick={battle.grabCactus} aria-label={t('duel.grab')} title={t('duel.grab')}>
@@ -166,7 +165,7 @@ export default function BattleBoard({ config, players, onMatchFinished, onQuit }
 
             <p className={`battle-status is-${phase}`} aria-live="polite">{status}</p>
 
-            <div className="sequence battle-sequence" key={`${battle.round}-${duel ? 'duel' : 'ring'}`}>
+            <div className={`sequence battle-sequence ${memorizing ? 'is-memorizing' : 'is-cascade'} ${memorizing && battle.countdown <= 3 ? 'is-urgent' : ''}`} key={`${battle.round}-${duel ? 'duel' : 'ring'}`}>
                 {battle.sequence.map((item, index) => {
                     const isAnswer = revealed && index + 1 === equation.answerPosition;
                     return (
@@ -174,7 +173,7 @@ export default function BattleBoard({ config, players, onMatchFinished, onQuit }
                             key={index}
                             item={item}
                             position={index + 1}
-                            hidden={phase !== 'memorize' && phase !== 'duelPeek' && !isAnswer}
+                            hidden={(memorizing && index >= show.dealt) || (phase !== 'memorize' && phase !== 'duelPeek' && !isAnswer)}
                             highlight={isAnswer}
                             label={t('board.pos', { n: index + 1 })}
                             hiddenLabel={t('board.hidden', { n: index + 1 })}
@@ -194,15 +193,12 @@ export default function BattleBoard({ config, players, onMatchFinished, onQuit }
             )}
             {phase === 'duelIntro' || phase === 'duelPeek' ? null : phase === 'memorize' ? (
                 <div className="memorize-foot">
-                    <div className="timer" role="timer" aria-live="off">
-                        <div className="timer-track">
-                            <div className="timer-fill" style={{ width: `${(battle.countdown / battle.seconds) * 100}%` }} />
-                        </div>
-                        <span className="timer-label">{t('board.timeLeft', { s: battle.countdown })}</span>
+                    <div className="memo-row">
+                        <MemoTimer countdown={battle.countdown} seconds={battle.seconds} />
+                        <button type="button" className="btn-go btn-go-inline" onClick={battle.ready}>
+                            <i className="fa-solid fa-check" aria-hidden="true"></i> {t('battle.ready')}
+                        </button>
                     </div>
-                    <button type="button" className="btn-mz btn-mz-ink" onClick={battle.ready}>
-                        {t('battle.ready')}
-                    </button>
                 </div>
             ) : (
                 <div className="battle-question">
